@@ -78,6 +78,7 @@ export default function InstitutionStudents() {
       grade: formData.get("grade") as string,
       parentName: formData.get("parentName") as string,
       parentEmail: formData.get("parentEmail") as string,
+      parentPhone: formData.get("parentPhone") as string,
       totalFees: Number(formData.get("totalFees")),
       paidAmount: Number(formData.get("paidAmount") || 0),
       status: (Number(formData.get("paidAmount") || 0) >= Number(formData.get("totalFees"))) ? "Paid" : "Balance",
@@ -236,9 +237,15 @@ export default function InstitutionStudents() {
                         <Input id="totalFees" name="totalFees" type="number" placeholder="50000" required />
                       </div>
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="parentName">Parent / Guardian Name</Label>
-                      <Input id="parentName" name="parentName" placeholder="Sarah Thompson" required />
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="parentName">Parent / Guardian Name</Label>
+                        <Input id="parentName" name="parentName" placeholder="Sarah Thompson" required />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="parentPhone">Parent Phone Number</Label>
+                        <Input id="parentPhone" name="parentPhone" placeholder="+254 700 000000" required />
+                      </div>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="parentEmail">Parent Email</Label>
@@ -295,7 +302,8 @@ export default function InstitutionStudents() {
                       <td className="p-4 text-sm">{s.grade}</td>
                       <td className="p-4">
                         <div className="flex flex-col">
-                          <span className="text-sm">{s.parentName}</span>
+                          <span className="text-sm font-medium">{s.parentName}</span>
+                          <span className="text-xs text-muted-foreground">{s.parentPhone || 'No Phone'}</span>
                           <span className="text-xs text-muted-foreground">{s.parentEmail}</span>
                         </div>
                       </td>

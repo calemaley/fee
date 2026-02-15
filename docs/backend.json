@@ -49,6 +49,7 @@
         "grade": { "type": "string" },
         "parentName": { "type": "string" },
         "parentEmail": { "type": "string", "format": "email" },
+        "parentPhone": { "type": "string", "description": "Contact phone number for the parent." },
         "totalFees": { "type": "number" },
         "paidAmount": { "type": "number" },
         "status": {
