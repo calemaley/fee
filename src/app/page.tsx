@@ -1,6 +1,6 @@
 "use client"
 
-import { GraduationCap, ShieldAlert, Lock, ArrowRight } from "lucide-react";
+import { ShieldAlert, Lock, ArrowRight } from "lucide-react";
 import Link from "next/link";
 
 export default function Home() {
