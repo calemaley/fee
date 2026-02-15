@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useEffect, useMemo } from "react";
@@ -80,7 +79,7 @@ export default function FamilyDashboard() {
     reference: (new Date()).getTime().toString(),
     email: user?.email || "",
     amount: balance * 100,
-    publicKey: "pk_live_c72e49065b2b0c5fb5a9093fa17d08dbcb29b6d3",
+    publicKey: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || "",
     currency: "KES",
   };
 
