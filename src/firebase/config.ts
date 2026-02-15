@@ -1,4 +1,3 @@
-
 export const firebaseConfig = {
   apiKey: "AIzaSyBTNYtfTCVr0XvQLSEIkEC0puGGRQKdqsU",
   authDomain: "schoolsystem-cc030.firebaseapp.com",
