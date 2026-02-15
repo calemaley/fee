@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState } from "react";
@@ -65,12 +66,6 @@ export default function FamilyLogin() {
             </CardFooter>
           </form>
         </Card>
-
-        <div className="text-center">
-          <Link href="/" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-            ← Back to home
-          </Link>
-        </div>
       </div>
     </div>
   );

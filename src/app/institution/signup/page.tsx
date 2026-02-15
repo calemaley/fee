@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState } from "react";
@@ -6,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/Card";
 import { ShieldCheck, Loader2, Building2 } from "lucide-react";
 
 export default function InstitutionSignup() {
@@ -73,12 +74,6 @@ export default function InstitutionSignup() {
             </CardFooter>
           </form>
         </Card>
-
-        <div className="text-center">
-          <Link href="/" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-            ← Back to public portal
-          </Link>
-        </div>
       </div>
     </div>
   );
