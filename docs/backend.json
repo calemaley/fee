@@ -63,6 +63,23 @@
         "medicalNotes": { "type": "string" }
       },
       "required": ["name", "admissionNumber", "parentEmail", "totalFees"]
+    },
+    "Payment": {
+      "title": "Payment",
+      "description": "Record of a fee payment made via Paystack.",
+      "type": "object",
+      "properties": {
+        "studentId": { "type": "string" },
+        "admissionNumber": { "type": "string" },
+        "amount": { "type": "number" },
+        "currency": { "type": "string" },
+        "reference": { "type": "string" },
+        "status": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" },
+        "email": { "type": "string", "format": "email" },
+        "method": { "type": "string" }
+      },
+      "required": ["studentId", "amount", "reference", "status"]
     }
   },
   "auth": {
@@ -80,6 +97,10 @@
     "/students/{studentId}": {
       "schema": "Student",
       "description": "Global directory of students and their fee records."
+    },
+    "/payments/{paymentId}": {
+      "schema": "Payment",
+      "description": "Historical log of all automated fee payments."
     }
   }
 }

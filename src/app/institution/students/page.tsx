@@ -67,7 +67,6 @@ export default function InstitutionStudents() {
   const [editingStudent, setEditingStudent] = useState<any>(null);
   const [viewingStudent, setViewingStudent] = useState<any>(null);
 
-  // Real-time student data
   const studentsQuery = useMemoFirebase(() => {
     if (!db) return null;
     return query(collection(db, "students"), orderBy("createdAt", "desc"));
@@ -78,8 +77,8 @@ export default function InstitutionStudents() {
   const filteredStudents = useMemo(() => {
     if (!students) return [];
     return students.filter(s => 
-      s.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-      s.admissionNumber.toLowerCase().includes(searchTerm.toLowerCase())
+      s.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      s.admissionNumber?.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [students, searchTerm]);
 
@@ -108,13 +107,12 @@ export default function InstitutionStudents() {
     };
 
     addDoc(collection(db, "students"), newStudent)
-      .catch(async (serverError) => {
-        const permissionError = new FirestorePermissionError({
+      .catch(async () => {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
           path: 'students',
           operation: 'create',
           requestResourceData: newStudent,
-        });
-        errorEmitter.emit('permission-error', permissionError);
+        }));
       });
 
     setIsAddingStudent(false);
@@ -129,6 +127,10 @@ export default function InstitutionStudents() {
     if (!db || !editingStudent) return;
 
     const formData = new FormData(e.currentTarget);
+    const totalFees = Number(formData.get("totalFees"));
+    const paidAmount = Number(editingStudent.paidAmount || 0);
+    const status = paidAmount >= totalFees ? "Paid" : "Balance";
+
     const updatedData = {
       name: formData.get("name") as string,
       admissionNumber: formData.get("admissionNumber") as string,
@@ -141,18 +143,18 @@ export default function InstitutionStudents() {
       parentPhone: formData.get("parentPhone") as string,
       background: formData.get("background") as string,
       medicalNotes: formData.get("medicalNotes") as string,
-      totalFees: Number(formData.get("totalFees")),
+      totalFees: totalFees,
+      status: status
     };
 
     const studentRef = doc(db, "students", editingStudent.id);
     updateDoc(studentRef, updatedData)
-      .catch(async (serverError) => {
-        const permissionError = new FirestorePermissionError({
+      .catch(async () => {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
           path: studentRef.path,
           operation: 'update',
           requestResourceData: updatedData,
-        });
-        errorEmitter.emit('permission-error', permissionError);
+        }));
       });
 
     setEditingStudent(null);
@@ -167,12 +169,11 @@ export default function InstitutionStudents() {
 
     const studentRef = doc(db, "students", studentId);
     deleteDoc(studentRef)
-      .catch(async (serverError) => {
-        const permissionError = new FirestorePermissionError({
+      .catch(async () => {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
           path: studentRef.path,
           operation: 'delete',
-        });
-        errorEmitter.emit('permission-error', permissionError);
+        }));
       });
 
     toast({
