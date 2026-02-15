@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Users, 
   TrendingUp, 
@@ -20,7 +21,12 @@ import {
   ArrowRight,
   Sparkles,
   Search,
-  Menu
+  Menu,
+  Download,
+  FileText,
+  CheckCircle2,
+  Clock,
+  Filter
 } from "lucide-react";
 import Link from "next/link";
 import { useAuth, useUser, useCollection, useFirestore } from "@/firebase";
@@ -34,6 +40,7 @@ export default function InstitutionDashboard() {
   const auth = useAuth();
   const db = useFirestore();
   const router = useRouter();
+  const { toast } = useToast();
 
   const studentsQuery = useMemo(() => {
     if (!db) return null;
@@ -43,13 +50,21 @@ export default function InstitutionDashboard() {
   const { data: students, loading: studentsLoading } = useCollection(studentsQuery);
 
   const stats = useMemo(() => {
-    if (!students) return { totalCollected: 0, totalOutstanding: 0, count: 0 };
+    if (!students) return { totalCollected: 0, totalOutstanding: 0, count: 0, paidCount: 0, balanceCount: 0, pendingCount: 0 };
     const totalCollected = students.reduce((acc, s) => acc + (Number(s.paidAmount) || 0), 0);
     const totalOutstanding = students.reduce((acc, s) => acc + ((Number(s.totalFees) || 0) - (Number(s.paidAmount) || 0)), 0);
+    
+    const paidCount = students.filter(s => s.status === 'Paid').length;
+    const balanceCount = students.filter(s => s.status === 'Balance').length;
+    const pendingCount = students.filter(s => s.status === 'Pending').length;
+
     return {
       totalCollected,
       totalOutstanding,
-      count: students.length
+      count: students.length,
+      paidCount,
+      balanceCount,
+      pendingCount
     };
   }, [students]);
 
@@ -58,6 +73,50 @@ export default function InstitutionDashboard() {
       await signOut(auth);
       router.push("/institution/login");
     }
+  };
+
+  const generateReport = (status: string) => {
+    if (!students) return;
+    
+    const filtered = status === 'All' 
+      ? students 
+      : students.filter(s => s.status === status);
+
+    const reportTitle = `${status} Students Report - ${new Date().toLocaleDateString()}`;
+    let content = `=========================================\n`;
+    content += `        SCHOLARLYPAY FINANCIAL REPORT\n`;
+    content += `=========================================\n`;
+    content += `Report Type: ${status}\n`;
+    content += `Date Generated: ${new Date().toLocaleString()}\n`;
+    content += `Total Records: ${filtered.length}\n`;
+    content += `-----------------------------------------\n\n`;
+    content += `NAME | ADMISSION # | GRADE | TOTAL | PAID | BALANCE | STATUS\n`;
+    content += `-----------------------------------------\n`;
+
+    filtered.forEach(s => {
+      const balance = Number(s.totalFees) - Number(s.paidAmount);
+      content += `${s.name} | ${s.admissionNumber} | ${s.grade} | KES ${Number(s.totalFees).toLocaleString()} | KES ${Number(s.paidAmount).toLocaleString()} | KES ${balance.toLocaleString()} | ${s.status}\n`;
+    });
+
+    content += `\n-----------------------------------------\n`;
+    content += `SUMMARY STATISTICS\n`;
+    content += `Total Fees Expected: KES ${filtered.reduce((acc, s) => acc + Number(s.totalFees), 0).toLocaleString()}\n`;
+    content += `Total Fees Collected: KES ${filtered.reduce((acc, s) => acc + Number(s.paidAmount), 0).toLocaleString()}\n`;
+    content += `Remaining Balance: KES ${filtered.reduce((acc, s) => acc + (Number(s.totalFees) - Number(s.paidAmount)), 0).toLocaleString()}\n`;
+    content += `=========================================\n`;
+
+    const element = document.createElement("a");
+    const file = new Blob([content], {type: 'text/plain'});
+    element.href = URL.createObjectURL(file);
+    element.download = `Report_${status.replace(' ', '_')}_${new Date().getTime()}.txt`;
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
+
+    toast({
+      title: "Report Generated",
+      description: `Successfully exported records for ${status} students.`,
+    });
   };
 
   if (userLoading || studentsLoading) {
@@ -151,6 +210,52 @@ export default function InstitutionDashboard() {
               avatars={stats.count}
               description="Successfully registered students"
             />
+          </div>
+
+          {/* New Financial Tracking & Reporting Section */}
+          <div className="space-y-8 mb-12">
+             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <h2 className="text-2xl font-black tracking-tighter">Status Ledger & Reporting</h2>
+                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Generate filtered financial statements</p>
+                </div>
+                <div className="flex gap-2">
+                  <Badge variant="outline" className="h-9 px-4 rounded-xl border-slate-200 bg-white font-black text-[10px] uppercase tracking-widest flex gap-2 items-center">
+                    <Filter className="h-3 w-3" /> Filters Active
+                  </Badge>
+                </div>
+             </div>
+
+             <Tabs defaultValue="all" className="w-full">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                  <TabsList className="bg-slate-100/50 p-1 rounded-2xl h-12 border border-slate-200 shadow-sm">
+                    <TabsTrigger value="all" className="rounded-xl px-6 data-[state=active]:bg-white data-[state=active]:shadow-md font-black text-[10px] uppercase tracking-widest">All</TabsTrigger>
+                    <TabsTrigger value="paid" className="rounded-xl px-6 data-[state=active]:bg-white data-[state=active]:shadow-md font-black text-[10px] uppercase tracking-widest">Paid</TabsTrigger>
+                    <TabsTrigger value="balance" className="rounded-xl px-6 data-[state=active]:bg-white data-[state=active]:shadow-md font-black text-[10px] uppercase tracking-widest">Balance</TabsTrigger>
+                    <TabsTrigger value="pending" className="rounded-xl px-6 data-[state=active]:bg-white data-[state=active]:shadow-md font-black text-[10px] uppercase tracking-widest">Pending</TabsTrigger>
+                  </TabsList>
+                  
+                  <div className="flex items-center gap-2">
+                    <TabsContent value="all" className="m-0"><ReportButton onClick={() => generateReport('All')} /></TabsContent>
+                    <TabsContent value="paid" className="m-0"><ReportButton onClick={() => generateReport('Paid')} /></TabsContent>
+                    <TabsContent value="balance" className="m-0"><ReportButton onClick={() => generateReport('Balance')} /></TabsContent>
+                    <TabsContent value="pending" className="m-0"><ReportButton onClick={() => generateReport('Pending')} /></TabsContent>
+                  </div>
+                </div>
+
+                <TabsContent value="all" className="mt-0">
+                  <LedgerTable students={students} filter="All" />
+                </TabsContent>
+                <TabsContent value="paid" className="mt-0">
+                  <LedgerTable students={students} filter="Paid" />
+                </TabsContent>
+                <TabsContent value="balance" className="mt-0">
+                  <LedgerTable students={students} filter="Balance" />
+                </TabsContent>
+                <TabsContent value="pending" className="mt-0">
+                  <LedgerTable students={students} filter="Pending" />
+                </TabsContent>
+             </Tabs>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-10">
@@ -291,6 +396,95 @@ function StatCard({ label, value, icon: Icon, color, progress, avatars, descript
         <p className="text-[11px] text-muted-foreground mt-4 font-bold opacity-50 uppercase tracking-widest">{description}</p>
       </CardContent>
     </Card>
+  );
+}
+
+function LedgerTable({ students, filter }: { students: any[] | null, filter: string }) {
+  const filtered = useMemo(() => {
+    if (!students) return [];
+    if (filter === 'All') return students;
+    return students.filter(s => s.status === filter);
+  }, [students, filter]);
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'Paid': return <CheckCircle2 className="h-3 w-3 text-green-500" />;
+      case 'Balance': return <Clock className="h-3 w-3 text-orange-500" />;
+      case 'Pending': return <AlertCircle className="h-3 w-3 text-destructive" />;
+      default: return null;
+    }
+  };
+
+  return (
+    <Card className="border-none shadow-[0_20px_60px_rgb(0,0,0,0.04)] bg-white rounded-[2.5rem] overflow-hidden">
+       <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse min-w-[700px]">
+             <thead>
+                <tr className="bg-slate-50/50 border-b border-slate-100 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">
+                   <th className="p-6">Student Information</th>
+                   <th className="p-6">Academic</th>
+                   <th className="p-6 text-right">Commitment</th>
+                   <th className="p-6 text-right">Collected</th>
+                   <th className="p-6 text-right">Status</th>
+                </tr>
+             </thead>
+             <tbody className="divide-y divide-slate-50">
+                {filtered.map(s => (
+                  <tr key={s.id} className="hover:bg-slate-50/30 transition-colors group">
+                     <td className="p-6">
+                        <div className="flex flex-col">
+                           <span className="text-sm font-black text-slate-800">{s.name}</span>
+                           <span className="text-[10px] font-bold text-slate-400 font-mono tracking-tighter uppercase">{s.admissionNumber}</span>
+                        </div>
+                     </td>
+                     <td className="p-6">
+                        <div className="flex flex-col">
+                           <span className="text-[10px] font-black text-primary uppercase">{s.grade}</span>
+                           <span className="text-[10px] font-bold text-slate-400 tracking-widest">{s.year} {s.term}</span>
+                        </div>
+                     </td>
+                     <td className="p-6 text-right">
+                        <span className="text-xs font-black text-slate-600">KES {Number(s.totalFees).toLocaleString()}</span>
+                     </td>
+                     <td className="p-6 text-right">
+                        <span className="text-xs font-black text-primary">KES {Number(s.paidAmount).toLocaleString()}</span>
+                     </td>
+                     <td className="p-6 text-right">
+                        <Badge variant="outline" className={`rounded-xl px-3 py-1 font-black text-[9px] uppercase tracking-widest flex items-center gap-2 ml-auto w-fit ${
+                          s.status === 'Paid' ? 'border-green-100 bg-green-50 text-green-600' :
+                          s.status === 'Balance' ? 'border-orange-100 bg-orange-50 text-orange-600' :
+                          'border-destructive/10 bg-destructive/5 text-destructive'
+                        }`}>
+                           {getStatusIcon(s.status)} {s.status}
+                        </Badge>
+                     </td>
+                  </tr>
+                ))}
+             </tbody>
+          </table>
+       </div>
+       {filtered.length === 0 && (
+         <div className="p-20 text-center flex flex-col items-center justify-center gap-4">
+            <div className="h-16 w-16 rounded-[2rem] bg-slate-50 flex items-center justify-center shadow-inner">
+               <Users className="h-8 w-8 text-slate-200" />
+            </div>
+            <p className="text-sm font-black text-slate-900 uppercase tracking-widest opacity-30">No matching records</p>
+         </div>
+       )}
+    </Card>
+  );
+}
+
+function ReportButton({ onClick }: { onClick: () => void }) {
+  return (
+    <Button 
+      variant="outline" 
+      size="sm" 
+      onClick={onClick}
+      className="rounded-xl px-5 h-10 gap-2 border-slate-200 font-black text-[10px] uppercase tracking-widest hover:bg-slate-900 hover:text-white hover:border-slate-900 transition-all shadow-sm"
+    >
+      <Download className="h-3.5 w-3.5" /> Export PDF/Report
+    </Button>
   );
 }
 
