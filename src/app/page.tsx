@@ -43,12 +43,12 @@ export default function Home() {
               </CardHeader>
               <CardContent className="flex flex-col gap-3">
                 <Button asChild className="w-full h-12 text-lg font-medium group" variant="default">
-                  <Link href="/parent/login">
+                  <Link href="/family/login">
                     Enter Portal <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
                   </Link>
                 </Button>
                 <Button asChild variant="ghost" className="text-primary">
-                  <Link href="/parent/signup">Create Parent Account</Link>
+                  <Link href="/family/signup">Create Parent Account</Link>
                 </Button>
               </CardContent>
             </Card>
@@ -66,12 +66,12 @@ export default function Home() {
               </CardHeader>
               <CardContent className="flex flex-col gap-3">
                 <Button asChild className="w-full h-12 text-lg font-medium group bg-primary" variant="default">
-                  <Link href="/admin/login">
+                  <Link href="/institution/login">
                     Manage School <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
                   </Link>
                 </Button>
                 <Button asChild variant="ghost" className="text-primary">
-                  <Link href="/admin/signup">Register Institution</Link>
+                  <Link href="/institution/signup">Register Institution</Link>
                 </Button>
               </CardContent>
             </Card>
