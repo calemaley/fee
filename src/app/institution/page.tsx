@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState } from "react";
@@ -13,6 +12,8 @@ import { createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 import { useAuth, useFirestore } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/errors';
 
 export default function InstitutionSignup() {
   const router = useRouter();
@@ -46,13 +47,27 @@ export default function InstitutionSignup() {
       const userCredential = await createUserWithEmailAndPassword(auth, formData.adminEmail, formData.password);
       const user = userCredential.user;
 
-      await setDoc(doc(db, "institutions", user.uid), {
+      const profileData = {
         schoolName: formData.schoolName,
         adminEmail: formData.adminEmail,
         role: "admin",
         createdAt: new Date().toISOString()
-      });
+      };
 
+      const docRef = doc(db, "institutions", user.uid);
+      
+      // Non-blocking write pattern
+      setDoc(docRef, profileData)
+        .catch(async (serverError) => {
+          const permissionError = new FirestorePermissionError({
+            path: docRef.path,
+            operation: 'create',
+            requestResourceData: profileData,
+          } satisfies SecurityRuleContext);
+          errorEmitter.emit('permission-error', permissionError);
+        });
+
+      // Optimistic redirect
       router.push("/institution/dashboard");
     } catch (error: any) {
       toast({
@@ -60,7 +75,6 @@ export default function InstitutionSignup() {
         title: "Registration failed",
         description: error.message || "An error occurred during signup."
       });
-    } finally {
       setIsLoading(false);
     }
   }
