@@ -17,7 +17,8 @@ import {
   LogOut,
   ChevronRight,
   Trash2,
-  Edit2
+  Edit2,
+  CreditCard
 } from "lucide-react";
 import {
   Dialog,
