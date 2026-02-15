@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useMemo } from "react";
@@ -33,7 +32,7 @@ import Link from "next/link";
 import { useAuth, useUser, useCollection, useFirestore } from "@/firebase";
 import { useRouter } from "next/navigation";
 import { signOut } from "firebase/auth";
-import { collection, addDoc, query, orderBy, deleteDoc, doc } from "firebase/firestore";
+import { collection, addDoc, query, orderBy, deleteDoc, doc, serverTimestamp } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/errors';
@@ -52,7 +51,7 @@ export default function InstitutionStudents() {
   // Real-time student data
   const studentsQuery = useMemo(() => {
     if (!db) return null;
-    return query(collection(db, "students"), orderBy("name", "asc"));
+    return query(collection(db, "students"), orderBy("createdAt", "desc"));
   }, [db]);
 
   const { data: students, loading: studentsLoading } = useCollection(studentsQuery);
@@ -82,7 +81,7 @@ export default function InstitutionStudents() {
       totalFees: Number(formData.get("totalFees")),
       paidAmount: Number(formData.get("paidAmount") || 0),
       status: (Number(formData.get("paidAmount") || 0) >= Number(formData.get("totalFees"))) ? "Paid" : "Balance",
-      createdAt: new Date().toISOString()
+      createdAt: serverTimestamp()
     };
 
     const studentsCol = collection(db, "students");
