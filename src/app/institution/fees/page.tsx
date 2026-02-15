@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useMemo } from "react";
@@ -34,6 +35,8 @@ import { collection, query, orderBy, updateDoc, doc } from "firebase/firestore";
 import { generateFeeExplanation } from "@/ai/flows/generate-fee-explanation";
 import { useToast } from "@/hooks/use-toast";
 import { useMemoFirebase } from "@/firebase/firestore/use-memo-firebase";
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 export default function InstitutionFees() {
   const { user, loading: userLoading } = useUser();
@@ -63,7 +66,7 @@ export default function InstitutionFees() {
     );
   }, [students, searchTerm]);
 
-  const handleUpdatePayment = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleUpdatePayment = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!db || !selectedStudent) return;
 
@@ -72,23 +75,27 @@ export default function InstitutionFees() {
     const newPaidAmount = (Number(selectedStudent.paidAmount) || 0) + amount;
     const newStatus = newPaidAmount >= Number(selectedStudent.totalFees) ? "Paid" : "Balance";
 
-    try {
-      await updateDoc(doc(db, "students", selectedStudent.id), {
-        paidAmount: newPaidAmount,
-        status: newStatus
+    const studentRef = doc(db, "students", selectedStudent.id);
+    const updateData = {
+      paidAmount: newPaidAmount,
+      status: newStatus
+    };
+
+    updateDoc(studentRef, updateData)
+      .catch(async (serverError) => {
+        const permissionError = new FirestorePermissionError({
+          path: studentRef.path,
+          operation: 'update',
+          requestResourceData: updateData,
+        });
+        errorEmitter.emit('permission-error', permissionError);
       });
-      setIsUpdatingFees(false);
-      toast({
-        title: "Payment Recorded",
-        description: `KES ${amount.toLocaleString()} has been added to ${selectedStudent.name}'s account.`,
-      });
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Error updating record",
-        description: error.message
-      });
-    }
+
+    setIsUpdatingFees(false);
+    toast({
+      title: "Processing Payment",
+      description: `Recording KES ${amount.toLocaleString()} for ${selectedStudent.name}...`,
+    });
   };
 
   const handleExplain = async (student: any) => {

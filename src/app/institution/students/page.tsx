@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useMemo } from "react";
@@ -32,9 +33,11 @@ import Link from "next/link";
 import { useAuth, useUser, useCollection, useFirestore } from "@/firebase";
 import { useRouter } from "next/navigation";
 import { signOut } from "firebase/auth";
-import { collection, addDoc, query, orderBy, deleteDoc, doc, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, query, orderBy, deleteDoc, doc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { useMemoFirebase } from "@/firebase/firestore/use-memo-firebase";
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 export default function InstitutionStudents() {
   const { user, loading: userLoading } = useUser();
@@ -45,7 +48,7 @@ export default function InstitutionStudents() {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [isAddingStudent, setIsAddingStudent] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editingStudent, setEditingStudent] = useState<any>(null);
 
   // Real-time student data
   const studentsQuery = useMemoFirebase(() => {
@@ -63,11 +66,10 @@ export default function InstitutionStudents() {
     );
   }, [students, searchTerm]);
 
-  const handleAddStudent = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleAddStudent = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!db) return;
 
-    setIsSubmitting(true);
     const formData = new FormData(e.currentTarget);
     
     const newStudent = {
@@ -83,40 +85,73 @@ export default function InstitutionStudents() {
       createdAt: serverTimestamp()
     };
 
-    try {
-      await addDoc(collection(db, "students"), newStudent);
-      setIsAddingStudent(false);
-      toast({
-        title: "Student Added",
-        description: `${newStudent.name} has been successfully registered.`,
+    addDoc(collection(db, "students"), newStudent)
+      .catch(async (serverError) => {
+        const permissionError = new FirestorePermissionError({
+          path: 'students',
+          operation: 'create',
+          requestResourceData: newStudent,
+        });
+        errorEmitter.emit('permission-error', permissionError);
       });
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Error adding student",
-        description: error.message
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
+
+    setIsAddingStudent(false);
+    toast({
+      title: "Processing Student Registration",
+      description: "Adding record to the directory...",
+    });
   };
 
-  const handleDeleteStudent = async (studentId: string) => {
+  const handleUpdateStudent = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!db || !editingStudent) return;
+
+    const formData = new FormData(e.currentTarget);
+    const updatedData = {
+      name: formData.get("name") as string,
+      admissionNumber: formData.get("admissionNumber") as string,
+      grade: formData.get("grade") as string,
+      parentName: formData.get("parentName") as string,
+      parentEmail: formData.get("parentEmail") as string,
+      parentPhone: formData.get("parentPhone") as string,
+      totalFees: Number(formData.get("totalFees")),
+    };
+
+    const studentRef = doc(db, "students", editingStudent.id);
+    updateDoc(studentRef, updatedData)
+      .catch(async (serverError) => {
+        const permissionError = new FirestorePermissionError({
+          path: studentRef.path,
+          operation: 'update',
+          requestResourceData: updatedData,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+      });
+
+    setEditingStudent(null);
+    toast({
+      title: "Processing Update",
+      description: "Saving changes to the student record...",
+    });
+  };
+
+  const handleDeleteStudent = (studentId: string) => {
     if (!db || !window.confirm("Are you sure you want to delete this student record?")) return;
 
-    try {
-      await deleteDoc(doc(db, "students", studentId));
-      toast({
-        title: "Student Deleted",
-        description: "Record has been removed from the directory.",
+    const studentRef = doc(db, "students", studentId);
+    deleteDoc(studentRef)
+      .catch(async (serverError) => {
+        const permissionError = new FirestorePermissionError({
+          path: studentRef.path,
+          operation: 'delete',
+        });
+        errorEmitter.emit('permission-error', permissionError);
       });
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Error deleting student",
-        description: error.message
-      });
-    }
+
+    toast({
+      title: "Deleting Student",
+      description: "Removing record from the directory...",
+    });
   };
 
   const handleLogout = async () => {
@@ -245,10 +280,7 @@ export default function InstitutionStudents() {
                   </div>
                   <DialogFooter>
                     <Button variant="outline" type="button" onClick={() => setIsAddingStudent(false)}>Cancel</Button>
-                    <Button type="submit" disabled={isSubmitting}>
-                      {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      Register Student
-                    </Button>
+                    <Button type="submit">Register Student</Button>
                   </DialogFooter>
                 </form>
               </DialogContent>
@@ -295,7 +327,12 @@ export default function InstitutionStudents() {
                         </div>
                       </td>
                       <td className="p-4 text-right space-x-2">
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 text-muted-foreground hover:text-primary"
+                          onClick={() => setEditingStudent(s)}
+                        >
                           <Edit2 className="h-4 w-4" />
                         </Button>
                         <Button 
@@ -318,6 +355,62 @@ export default function InstitutionStudents() {
               )}
             </div>
           </Card>
+
+          {/* Edit Student Dialog */}
+          <Dialog open={!!editingStudent} onOpenChange={(open) => !open && setEditingStudent(null)}>
+            <DialogContent className="sm:max-w-[500px]">
+              {editingStudent && (
+                <form onSubmit={handleUpdateStudent}>
+                  <DialogHeader>
+                    <DialogTitle className="text-2xl font-headline">Edit Student Record</DialogTitle>
+                    <DialogDescription>
+                      Update the details for {editingStudent.name}.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-6">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-name">Full Name</Label>
+                        <Input id="edit-name" name="name" defaultValue={editingStudent.name} required />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-admissionNumber">Admission #</Label>
+                        <Input id="edit-admissionNumber" name="admissionNumber" defaultValue={editingStudent.admissionNumber} required />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-grade">Grade / Class</Label>
+                        <Input id="edit-grade" name="grade" defaultValue={editingStudent.grade} required />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-totalFees">Total Fees (KES)</Label>
+                        <Input id="edit-totalFees" name="totalFees" type="number" defaultValue={editingStudent.totalFees} required />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-parentName">Parent / Guardian Name</Label>
+                        <Input id="edit-parentName" name="parentName" defaultValue={editingStudent.parentName} required />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-parentPhone">Parent Phone</Label>
+                        <Input id="edit-parentPhone" name="parentPhone" defaultValue={editingStudent.parentPhone} required />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-parentEmail">Parent Email</Label>
+                      <Input id="edit-parentEmail" name="parentEmail" type="email" defaultValue={editingStudent.parentEmail} required />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" type="button" onClick={() => setEditingStudent(null)}>Cancel</Button>
+                    <Button type="submit">Save Changes</Button>
+                  </DialogFooter>
+                </form>
+              )}
+            </DialogContent>
+          </Dialog>
         </main>
       </div>
     </div>
