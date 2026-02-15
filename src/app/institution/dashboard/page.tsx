@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useMemo } from "react";
@@ -16,7 +15,9 @@ import {
   Loader2,
   LogOut,
   ChevronRight,
-  ArrowRight
+  ArrowRight,
+  Sparkles,
+  Search
 } from "lucide-react";
 import Link from "next/link";
 import { useAuth, useUser, useCollection, useFirestore } from "@/firebase";
@@ -31,7 +32,6 @@ export default function InstitutionDashboard() {
   const db = useFirestore();
   const router = useRouter();
 
-  // Real-time student data for stats
   const studentsQuery = useMemo(() => {
     if (!db) return null;
     return query(collection(db, "students"), orderBy("createdAt", "desc"));
@@ -59,9 +59,12 @@ export default function InstitutionDashboard() {
 
   if (userLoading || studentsLoading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-[#F8FAFC]">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
-        <p className="text-muted-foreground font-medium">Synchronizing institution data...</p>
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-background">
+        <div className="relative">
+          <Loader2 className="h-12 w-12 animate-spin text-primary" />
+          <div className="absolute inset-0 blur-xl bg-primary/20 animate-pulse" />
+        </div>
+        <p className="text-muted-foreground font-medium animate-pulse">Syncing your Institution Dashboard...</p>
       </div>
     );
   }
@@ -69,177 +72,236 @@ export default function InstitutionDashboard() {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC]">
+    <div className="min-h-screen bg-[#FDFDFF]">
       <div className="flex">
         {/* Sidebar */}
-        <aside className="w-64 bg-primary min-h-screen hidden lg:flex flex-col text-white p-6 sticky top-0 shadow-2xl">
-          <div className="flex items-center gap-2 mb-10">
-            <div className="bg-white/20 p-2 rounded-lg">
-              <GraduationCap className="h-6 w-6" />
+        <aside className="w-72 glass-sidebar min-h-screen hidden lg:flex flex-col text-white p-6 sticky top-0 z-50">
+          <div className="flex items-center gap-3 mb-12 px-2">
+            <div className="bg-gradient-to-br from-primary to-accent p-2.5 rounded-2xl shadow-lg shadow-primary/20">
+              <GraduationCap className="h-7 w-7 text-white" />
             </div>
-            <span className="text-xl font-bold font-headline">ScholarlyPay</span>
+            <span className="text-2xl font-black font-headline tracking-tighter">ScholarlyPay</span>
           </div>
           
-          <nav className="space-y-2 flex-1">
-            <Button variant="ghost" className="w-full justify-start text-white hover:bg-white/10 bg-white/10" asChild>
-              <Link href="/institution/dashboard">
-                <LayoutDashboard className="mr-3 h-5 w-5" /> Dashboard
-              </Link>
-            </Button>
-            <Button variant="ghost" className="w-full justify-start text-white/70 hover:bg-white/10 hover:text-white" asChild>
-              <Link href="/institution/students">
-                <Users className="mr-3 h-5 w-5" /> Students
-              </Link>
-            </Button>
-            <Button variant="ghost" className="w-full justify-start text-white/70 hover:bg-white/10 hover:text-white" asChild>
-              <Link href="/institution/fees">
-                <CreditCard className="mr-3 h-5 w-5" /> Fees Management
-              </Link>
-            </Button>
+          <nav className="space-y-1.5 flex-1">
+            <NavItem href="/institution/dashboard" icon={LayoutDashboard} label="Overview" active />
+            <NavItem href="/institution/students" icon={Users} label="Student Directory" />
+            <NavItem href="/institution/fees" icon={CreditCard} label="Fees Control" />
           </nav>
 
-          <div className="mt-auto pt-6 border-t border-white/10 space-y-4">
-            <div className="flex items-center gap-3 px-2">
-              <div className="h-10 w-10 rounded-full bg-accent flex items-center justify-center font-bold text-accent-foreground shadow-inner">
+          <div className="mt-auto pt-6 border-t border-white/10 space-y-5">
+            <div className="flex items-center gap-4 px-3 py-4 rounded-2xl bg-white/5 border border-white/5">
+              <div className="h-12 w-12 rounded-full bg-gradient-to-tr from-accent to-primary flex items-center justify-center font-bold text-white shadow-inner">
                 {user.email?.substring(0, 2).toUpperCase()}
               </div>
               <div className="flex flex-col overflow-hidden">
-                <span className="text-sm font-semibold truncate">{user.email}</span>
-                <span className="text-xs text-white/50 truncate">Administrator</span>
+                <span className="text-sm font-bold truncate">{user.email}</span>
+                <span className="text-[10px] text-white/40 font-bold uppercase tracking-widest">Administrator</span>
               </div>
             </div>
-            <Button variant="ghost" className="w-full justify-start text-white/50 hover:text-white hover:bg-white/10" onClick={handleLogout}>
-              <LogOut className="mr-3 h-5 w-5" /> Logout
+            <Button 
+              variant="ghost" 
+              className="w-full justify-start text-white/40 hover:text-white hover:bg-white/10 transition-all rounded-xl" 
+              onClick={handleLogout}
+            >
+              <LogOut className="mr-3 h-5 w-5" /> Logout Session
             </Button>
           </div>
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 p-8 overflow-auto">
-          <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-10">
+        <main className="flex-1 p-8 lg:p-12 overflow-auto">
+          <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
             <div>
-              <h1 className="text-3xl font-extrabold text-foreground font-headline">Institution Overview</h1>
-              <p className="text-muted-foreground flex items-center gap-1.5">
-                Financial health summary <ChevronRight className="h-3.5 w-3.5" /> <span className="text-primary font-medium">KES</span>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-xs font-bold text-primary uppercase tracking-widest">Analytics Dashboard</span>
+                <Sparkles className="h-3 w-3 text-accent fill-accent" />
+              </div>
+              <h1 className="text-4xl font-black text-foreground font-headline tracking-tight">Institutional Health</h1>
+              <p className="text-muted-foreground mt-1 flex items-center gap-2">
+                Operational metrics for <span className="font-bold text-foreground">Scholarly Academy</span>
               </p>
             </div>
-            <Button asChild className="bg-primary hover:bg-primary/90 h-11 px-6 shadow-lg shadow-primary/20">
-              <Link href="/institution/students">
-                <Plus className="mr-2 h-4 w-4" /> Manage Students
-              </Link>
-            </Button>
+            <div className="flex items-center gap-3">
+              <Button asChild size="lg" className="bg-primary hover:bg-primary/90 rounded-2xl px-8 h-12 shadow-xl shadow-primary/20 transition-all hover:-translate-y-0.5 active:translate-y-0">
+                <Link href="/institution/students">
+                  <Plus className="mr-2 h-5 w-5" /> Register Student
+                </Link>
+              </Button>
+            </div>
           </header>
 
           {/* Stats Cards */}
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
-            <Card className="border-none shadow-md overflow-hidden bg-white group hover:shadow-xl transition-all duration-300">
-              <div className="h-1 bg-primary" />
-              <CardHeader className="pb-2">
-                <CardDescription className="flex items-center text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  <TrendingUp className="mr-1.5 h-3 w-3 text-primary" /> Total Revenue
-                </CardDescription>
-                <CardTitle className="text-3xl font-headline font-bold">KES {stats.totalCollected.toLocaleString()}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
-                  <div className="h-full bg-primary" style={{ width: '65%' }} />
-                </div>
-                <p className="text-[10px] text-muted-foreground mt-2">Live collection from all registered students</p>
-              </CardContent>
-            </Card>
-
-            <Card className="border-none shadow-md overflow-hidden bg-white group hover:shadow-xl transition-all duration-300">
-              <div className="h-1 bg-accent" />
-              <CardHeader className="pb-2">
-                <CardDescription className="flex items-center text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  <AlertCircle className="mr-1.5 h-3 w-3 text-accent" /> Outstanding Balance
-                </CardDescription>
-                <CardTitle className="text-3xl font-headline font-bold">KES {stats.totalOutstanding.toLocaleString()}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
-                  <div className="h-full bg-accent" style={{ width: '35%' }} />
-                </div>
-                <p className="text-[10px] text-muted-foreground mt-2">Total pending payments across institution</p>
-              </CardContent>
-            </Card>
-
-            <Card className="border-none shadow-md overflow-hidden bg-white group hover:shadow-xl transition-all duration-300">
-              <div className="h-1 bg-foreground" />
-              <CardHeader className="pb-2">
-                <CardDescription className="flex items-center text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  <Users className="mr-1.5 h-3 w-3 text-foreground" /> Active Students
-                </CardDescription>
-                <CardTitle className="text-3xl font-headline font-bold">{stats.count}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex -space-x-2">
-                  {[...Array(Math.min(stats.count, 5))].map((_, i) => (
-                    <div key={i} className="h-6 w-6 rounded-full border-2 border-white bg-muted-foreground flex items-center justify-center text-[8px] text-white">
-                      {i + 1}
-                    </div>
-                  ))}
-                </div>
-                <p className="text-[10px] text-muted-foreground mt-2">Currently registered in the directory</p>
-              </CardContent>
-            </Card>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
+            <StatCard 
+              label="Total Revenue" 
+              value={`KES ${stats.totalCollected.toLocaleString()}`} 
+              icon={TrendingUp} 
+              color="primary"
+              progress={65}
+              description="Live collection from portal"
+            />
+            <StatCard 
+              label="Outstanding" 
+              value={`KES ${stats.totalOutstanding.toLocaleString()}`} 
+              icon={AlertCircle} 
+              color="accent"
+              progress={35}
+              description="Target collection end of month"
+            />
+            <StatCard 
+              label="Active Roster" 
+              value={stats.count.toString()} 
+              icon={Users} 
+              color="foreground"
+              avatars={stats.count}
+              description="Successfully registered students"
+            />
           </div>
 
-          <div className="grid lg:grid-cols-2 gap-8">
-            <Card className="border-none shadow-lg">
-              <CardHeader>
-                <CardTitle className="text-xl font-headline">Recent Admissions</CardTitle>
-                <CardDescription>Latest students added to the system</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {students?.slice(0, 5).map((s: any) => (
-                  <div key={s.id} className="flex items-center justify-between p-3 rounded-lg border bg-muted/10">
-                    <div className="flex flex-col">
-                      <span className="font-bold text-sm">{s.name}</span>
-                      <span className="text-xs text-muted-foreground">{s.grade}</span>
-                    </div>
-                    <Badge variant="outline">{s.admissionNumber}</Badge>
-                  </div>
-                ))}
-                {(!students || students.length === 0) && (
-                  <p className="text-center py-8 text-muted-foreground italic">No students registered yet.</p>
-                )}
-                <Button variant="ghost" className="w-full text-primary font-semibold" asChild>
-                  <Link href="/institution/students">
-                    View All Students <ArrowRight className="ml-2 h-4 w-4" />
-                  </Link>
-                </Button>
-              </CardContent>
-            </Card>
+          <div className="grid lg:grid-cols-2 gap-10">
+            <SectionCard 
+              title="Recent Admissions" 
+              description="Latest student registrations"
+              href="/institution/students"
+              items={students?.slice(0, 5).map((s: any) => ({
+                id: s.id,
+                title: s.name,
+                subtitle: s.grade,
+                badge: s.admissionNumber
+              }))}
+            />
 
-            <Card className="border-none shadow-lg">
-              <CardHeader>
-                <CardTitle className="text-xl font-headline">Payment Alerts</CardTitle>
-                <CardDescription>Students with significant outstanding balances</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {students?.filter((s: any) => (Number(s.totalFees) - Number(s.paidAmount)) > 0).slice(0, 5).map((s: any) => (
-                  <div key={s.id} className="flex items-center justify-between p-3 rounded-lg border bg-destructive/5 border-destructive/10">
-                    <div className="flex flex-col">
-                      <span className="font-bold text-sm">{s.name}</span>
-                      <span className="text-xs text-muted-foreground">Balance: KES {(Number(s.totalFees) - Number(s.paidAmount)).toLocaleString()}</span>
-                    </div>
-                    <Badge variant="destructive">Pending</Badge>
-                  </div>
-                ))}
-                {(!students || students.filter((s: any) => (Number(s.totalFees) - Number(s.paidAmount)) > 0).length === 0) && (
-                  <p className="text-center py-8 text-muted-foreground italic">All accounts are up to date!</p>
-                )}
-                <Button variant="ghost" className="w-full text-primary font-semibold" asChild>
-                  <Link href="/institution/fees">
-                    Go to Fees Management <ArrowRight className="ml-2 h-4 w-4" />
-                  </Link>
-                </Button>
-              </CardContent>
-            </Card>
+            <SectionCard 
+              title="Payment Alerts" 
+              description="High priority outstanding balances"
+              href="/institution/fees"
+              items={students?.filter((s: any) => (Number(s.totalFees) - Number(s.paidAmount)) > 0).slice(0, 5).map((s: any) => ({
+                id: s.id,
+                title: s.name,
+                subtitle: `Balance: KES ${(Number(s.totalFees) - Number(s.paidAmount)).toLocaleString()}`,
+                badge: "Pending",
+                variant: "destructive"
+              }))}
+            />
           </div>
         </main>
       </div>
     </div>
+  );
+}
+
+function NavItem({ href, icon: Icon, label, active = false }: { href: string, icon: any, label: string, active?: boolean }) {
+  return (
+    <Button 
+      variant="ghost" 
+      className={`w-full justify-start rounded-xl h-12 transition-all group ${
+        active 
+          ? "bg-white/10 text-white shadow-lg shadow-black/20" 
+          : "text-white/50 hover:text-white hover:bg-white/5"
+      }`} 
+      asChild
+    >
+      <Link href={href}>
+        <Icon className={`mr-3 h-5 w-5 transition-transform group-hover:scale-110 ${active ? "text-accent" : ""}`} />
+        <span className="font-semibold">{label}</span>
+      </Link>
+    </Button>
+  );
+}
+
+function StatCard({ label, value, icon: Icon, color, progress, avatars, description }: any) {
+  const colorMap: any = {
+    primary: "bg-primary",
+    accent: "bg-accent",
+    foreground: "bg-slate-900"
+  };
+
+  return (
+    <Card className="border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white overflow-hidden group hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] transition-all duration-500 rounded-3xl">
+      <div className={`h-1.5 w-full ${colorMap[color] || "bg-primary"}`} />
+      <CardHeader className="pb-4 pt-6">
+        <div className="flex items-center justify-between mb-2">
+          <CardDescription className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/80">
+            {label}
+          </CardDescription>
+          <div className={`p-2 rounded-xl ${colorMap[color]} bg-opacity-10`}>
+            <Icon className={`h-4 w-4 ${color === 'foreground' ? 'text-slate-900' : 'text-' + color}`} />
+          </div>
+        </div>
+        <CardTitle className="text-3xl font-black font-headline tracking-tighter">{value}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {progress !== undefined && (
+          <div className="space-y-2">
+            <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+              <div 
+                className={`h-full ${colorMap[color]} transition-all duration-1000`} 
+                style={{ width: `${progress}%` }} 
+              />
+            </div>
+          </div>
+        )}
+        {avatars !== undefined && (
+          <div className="flex -space-x-2.5">
+            {[...Array(Math.min(avatars, 5))].map((_, i) => (
+              <div key={i} className="h-7 w-7 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center text-[8px] font-bold text-slate-600 shadow-sm">
+                {String.fromCharCode(65 + i)}
+              </div>
+            ))}
+            {avatars > 5 && (
+              <div className="h-7 w-7 rounded-full border-2 border-white bg-slate-100 flex items-center justify-center text-[8px] font-bold text-slate-400">
+                +{avatars - 5}
+              </div>
+            )}
+          </div>
+        )}
+        <p className="text-[11px] text-muted-foreground mt-3 font-medium opacity-70 italic">{description}</p>
+      </CardContent>
+    </Card>
+  );
+}
+
+function SectionCard({ title, description, items, href, variant }: any) {
+  return (
+    <Card className="border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white rounded-3xl overflow-hidden">
+      <CardHeader className="flex flex-row items-center justify-between border-b border-slate-50 pb-6">
+        <div>
+          <CardTitle className="text-xl font-black font-headline tracking-tight">{title}</CardTitle>
+          <CardDescription className="text-xs mt-0.5">{description}</CardDescription>
+        </div>
+        <Button variant="ghost" size="sm" asChild className="text-primary rounded-xl font-bold hover:bg-primary/5">
+          <Link href={href}>View All</Link>
+        </Button>
+      </CardHeader>
+      <CardContent className="pt-6 space-y-4">
+        {items?.length > 0 ? items.map((item: any) => (
+          <div key={item.id} className="group flex items-center justify-between p-4 rounded-2xl border border-slate-100 hover:border-primary/20 hover:bg-primary/[0.02] transition-all cursor-pointer">
+            <div className="flex flex-col">
+              <span className="font-black text-sm text-slate-800">{item.title}</span>
+              <span className="text-[11px] text-muted-foreground font-medium mt-0.5">{item.subtitle}</span>
+            </div>
+            <Badge 
+              variant={item.variant === "destructive" ? "destructive" : "secondary"} 
+              className="rounded-lg px-2.5 py-0.5 font-bold tracking-tight"
+            >
+              {item.badge}
+            </Badge>
+          </div>
+        )) : (
+          <div className="py-12 flex flex-col items-center justify-center text-center">
+            <div className="h-12 w-12 rounded-2xl bg-slate-50 flex items-center justify-center mb-3">
+              <Search className="h-6 w-6 text-slate-300" />
+            </div>
+            <p className="text-sm text-muted-foreground font-medium italic">No recent records to display</p>
+          </div>
+        )}
+        <Button variant="ghost" className="w-full text-primary font-bold group rounded-2xl h-11" asChild>
+          <Link href={href}>
+            Full Report <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+          </Link>
+        </Button>
+      </CardContent>
+    </Card>
   );
 }

@@ -4,53 +4,54 @@
 
 @layer base {
   :root {
-    --background: 200 15% 95%;
-    --foreground: 210 50% 10%;
+    /* Refined modern palette */
+    --background: 210 40% 98%;
+    --foreground: 222 47% 11%;
     --card: 0 0% 100%;
-    --card-foreground: 210 50% 10%;
+    --card-foreground: 222 47% 11%;
     --popover: 0 0% 100%;
-    --popover-foreground: 210 50% 10%;
-    --primary: 210 50% 40%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 200 20% 90%;
-    --secondary-foreground: 210 50% 20%;
-    --muted: 200 15% 90%;
-    --muted-foreground: 210 20% 40%;
-    --accent: 180 50% 54%;
-    --accent-foreground: 180 50% 10%;
+    --popover-foreground: 222 47% 11%;
+    --primary: 221 83% 53%; /* Modern Indigo/Blue */
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222 47% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 187 100% 42%; /* Vibrant Teal/Cyan */
+    --accent-foreground: 210 40% 98%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
-    --border: 210 20% 85%;
-    --input: 210 20% 85%;
-    --ring: 210 50% 40%;
-    --radius: 0.75rem;
-    --chart-1: 210 50% 40%;
-    --chart-2: 180 50% 54%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221 83% 53%;
+    --radius: 1rem;
+    --chart-1: 221 83% 53%;
+    --chart-2: 187 100% 42%;
     --chart-3: 197 37% 24%;
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
   }
 
   .dark {
-    --background: 210 50% 5%;
-    --foreground: 210 20% 98%;
-    --card: 210 50% 8%;
-    --card-foreground: 210 20% 98%;
-    --popover: 210 50% 8%;
-    --popover-foreground: 210 20% 98%;
-    --primary: 210 50% 40%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 210 30% 15%;
-    --secondary-foreground: 210 20% 98%;
-    --muted: 210 30% 15%;
-    --muted-foreground: 210 20% 60%;
-    --accent: 180 50% 54%;
-    --accent-foreground: 210 20% 98%;
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 187 100% 42%;
+    --accent-foreground: 210 40% 98%;
     --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 20% 98%;
-    --border: 210 30% 20%;
-    --input: 210 30% 20%;
-    --ring: 210 50% 40%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 224.3 76.3% 48%;
   }
 }
 
@@ -59,16 +60,16 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground font-body antialiased;
+    @apply bg-background text-foreground font-body antialiased selection:bg-primary/20;
   }
   h1, h2, h3, h4, h5, h6 {
-    @apply font-headline;
+    @apply font-headline font-bold tracking-tight;
   }
 }
 
 /* Custom Auth Styling */
 .auth-container {
-  @apply flex justify-center items-center min-h-screen bg-[#111] w-full overflow-hidden;
+  @apply flex justify-center items-center min-h-screen bg-[#0a0a0b] w-full overflow-hidden;
 }
 
 .ring-wrapper {
@@ -114,7 +115,7 @@
 }
 
 .auth-form-box h2 {
-  @apply text-3xl font-bold text-white mb-2;
+  @apply text-3xl font-bold text-white mb-2 font-headline;
 }
 
 .auth-input-bx {
@@ -122,7 +123,7 @@
 }
 
 .auth-input-bx input, .auth-input-bx select {
-  @apply w-full px-5 py-3 bg-transparent border-2 border-white rounded-[40px] text-lg text-white outline-none transition-all;
+  @apply w-full px-5 py-3 bg-transparent border-2 border-white/30 rounded-full text-lg text-white outline-none transition-all focus:border-white;
 }
 
 .auth-input-bx input::placeholder {
@@ -130,13 +131,22 @@
 }
 
 .auth-submit-btn {
-  @apply w-full py-3 bg-gradient-to-r from-[#ff357a] to-[#fff172] border-none rounded-[40px] text-lg font-bold text-[#111] cursor-pointer hover:opacity-90 transition-opacity;
+  @apply w-full py-3 bg-gradient-to-r from-primary to-accent border-none rounded-full text-lg font-bold text-white cursor-pointer hover:scale-[1.02] transition-transform active:scale-95 shadow-lg shadow-primary/20;
 }
 
 .auth-links {
   @apply w-full flex items-center justify-between px-5 text-sm;
 }
 
-.auth-links a {
-  @apply text-white no-underline hover:underline;
+.auth-links a, .auth-links button {
+  @apply text-white/70 no-underline hover:text-white hover:underline transition-colors;
+}
+
+/* Glassmorphism Classes */
+.glass-card {
+  @apply bg-white/70 backdrop-blur-md border border-white/20 shadow-xl;
+}
+
+.glass-sidebar {
+  @apply bg-slate-900/95 backdrop-blur-xl border-r border-white/5;
 }
