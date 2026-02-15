@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useEffect } from "react";
@@ -9,16 +10,31 @@ import { GraduationCap, History, CreditCard, Download, User, Info, LogOut } from
 import { MOCK_STUDENTS, MOCK_PAYMENTS, Student } from "@/app/lib/mock-data";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
+import { useAuth, useUser } from "@/firebase";
+import { useRouter } from "next/navigation";
+import { signOut } from "firebase/auth";
 
 export default function FamilyDashboard() {
+  const { user, loading } = useUser();
+  const auth = useAuth();
+  const router = useRouter();
   const { toast } = useToast();
   const [student, setStudent] = useState<Student | null>(null);
   const [isPaying, setIsPaying] = useState(false);
 
   useEffect(() => {
-    // Simulating fetching current user's child
-    setStudent(MOCK_STUDENTS[0]);
-  }, []);
+    if (!loading && !user) {
+      router.push("/family/login");
+    }
+  }, [user, loading, router]);
+
+  useEffect(() => {
+    // Simulating fetching current user's child based on auth email
+    if (user) {
+      const found = MOCK_STUDENTS.find(s => s.parentEmail === user.email) || MOCK_STUDENTS[0];
+      setStudent(found);
+    }
+  }, [user]);
 
   const handlePayFees = () => {
     setIsPaying(true);
@@ -27,12 +43,20 @@ export default function FamilyDashboard() {
       setIsPaying(false);
       toast({
         title: "Payment Successful",
-        description: "Your payment of GHS 400.00 has been received. You can now download your receipt.",
+        description: "Your payment of KES 4,000.00 has been received. You can now download your receipt.",
       });
     }, 2000);
   };
 
-  if (!student) return <div className="p-8 text-center">Loading dashboard...</div>;
+  const handleLogout = async () => {
+    if (auth) {
+      await signOut(auth);
+      router.push("/family/login");
+    }
+  };
+
+  if (loading) return <div className="p-8 text-center">Loading dashboard...</div>;
+  if (!user || !student) return null;
 
   const balance = student.totalFees - student.paidAmount;
 
@@ -42,18 +66,16 @@ export default function FamilyDashboard() {
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <div className="flex items-center gap-2">
             <div className="bg-primary p-2 rounded-lg">
-              <GraduationCap className="text-white h-5 w-5" />
+              < GraduationCap className="text-white h-5 w-5" />
             </div>
             <span className="text-xl font-bold text-primary font-headline">ScholarlyPay</span>
           </div>
           <div className="flex items-center gap-4">
             <Badge variant="outline" className="hidden sm:flex items-center gap-1 font-medium bg-white">
-              <User className="h-3 w-3" /> {student.parentName}
+              <User className="h-3 w-3" /> {user.email}
             </Badge>
-            <Button variant="ghost" size="sm" asChild>
-              <Link href="/family/login" className="flex items-center gap-2">
-                <LogOut className="h-4 w-4" /> Logout
-              </Link>
+            <Button variant="ghost" size="sm" onClick={handleLogout}>
+              <LogOut className="h-4 w-4 mr-2" /> Logout
             </Button>
           </div>
         </div>
@@ -62,7 +84,7 @@ export default function FamilyDashboard() {
       <main className="max-w-7xl mx-auto p-6 space-y-8">
         <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div className="space-y-1">
-            <h2 className="text-3xl font-bold tracking-tight font-headline">Hello, {student.parentName.split(' ')[0]}</h2>
+            <h2 className="text-3xl font-bold tracking-tight font-headline">Hello, Parent</h2>
             <p className="text-muted-foreground flex items-center gap-2">
               Viewing dashboard for <span className="font-semibold text-foreground underline decoration-accent underline-offset-4">{student.name}</span>
             </p>
@@ -80,7 +102,7 @@ export default function FamilyDashboard() {
             <CardHeader>
               <CardTitle className="text-lg font-medium opacity-80 uppercase tracking-wider">Fee Balance</CardTitle>
               <div className="flex items-baseline gap-2">
-                <span className="text-5xl font-extrabold font-headline">GHS {balance.toFixed(2)}</span>
+                <span className="text-5xl font-extrabold font-headline">KES {balance.toLocaleString()}</span>
                 <span className="opacity-70">Remaining</span>
               </div>
             </CardHeader>
@@ -88,11 +110,11 @@ export default function FamilyDashboard() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-white/10 p-4 rounded-xl backdrop-blur-md">
                   <p className="text-xs opacity-70 uppercase mb-1">Total Fee Amount</p>
-                  <p className="text-xl font-bold">GHS {student.totalFees.toFixed(2)}</p>
+                  <p className="text-xl font-bold">KES {student.totalFees.toLocaleString()}</p>
                 </div>
                 <div className="bg-white/10 p-4 rounded-xl backdrop-blur-md">
                   <p className="text-xs opacity-70 uppercase mb-1">Total Paid So Far</p>
-                  <p className="text-xl font-bold text-accent">GHS {student.paidAmount.toFixed(2)}</p>
+                  <p className="text-xl font-bold text-accent">KES {student.paidAmount.toLocaleString()}</p>
                 </div>
               </div>
               <Button 
@@ -159,7 +181,7 @@ export default function FamilyDashboard() {
                         <td className="p-4 text-sm text-muted-foreground">{payment.date}</td>
                         <td className="p-4 text-sm font-mono">{payment.reference}</td>
                         <td className="p-4 text-sm font-medium">{payment.method}</td>
-                        <td className="p-4 text-sm text-right font-bold">GHS {payment.amount.toFixed(2)}</td>
+                        <td className="p-4 text-sm text-right font-bold">KES {payment.amount.toLocaleString()}</td>
                         <td className="p-4 text-right">
                           <Button variant="outline" size="sm" className="h-8 gap-2 border-accent text-accent hover:bg-accent/10">
                             <Download className="h-3.5 w-3.5" /> Download

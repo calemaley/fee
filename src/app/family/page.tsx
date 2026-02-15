@@ -9,18 +9,54 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { UserPlus, Loader2 } from "lucide-react";
+import { createUserWithEmailAndPassword } from "firebase/auth";
+import { doc, setDoc } from "firebase/firestore";
+import { useAuth, useFirestore } from "@/firebase";
+import { useToast } from "@/hooks/use-toast";
 
 export default function FamilySignup() {
   const router = useRouter();
+  const auth = useAuth();
+  const db = useFirestore();
+  const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+
+  const [formData, setFormData] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    password: "",
+    admissionNumber: ""
+  });
 
   async function onSubmit(event: React.SyntheticEvent) {
     event.preventDefault();
+    if (!auth || !db) return;
+
     setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
+      const user = userCredential.user;
+
+      await setDoc(doc(db, "parents", user.uid), {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        admissionNumber: formData.admissionNumber,
+        role: "parent",
+        createdAt: new Date().toISOString()
+      });
+
       router.push("/family/dashboard");
-    }, 2000);
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Registration failed",
+        description: error.message || "An error occurred during signup."
+      });
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   return (
@@ -46,24 +82,59 @@ export default function FamilySignup() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="first-name">First Name</Label>
-                  <Input id="first-name" placeholder="John" required disabled={isLoading} />
+                  <Input 
+                    id="first-name" 
+                    placeholder="John" 
+                    required 
+                    disabled={isLoading}
+                    value={formData.firstName}
+                    onChange={(e) => setFormData({...formData, firstName: e.target.value})}
+                  />
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="last-name">Last Name</Label>
-                  <Input id="last-name" placeholder="Doe" required disabled={isLoading} />
+                  <Input 
+                    id="last-name" 
+                    placeholder="Doe" 
+                    required 
+                    disabled={isLoading}
+                    value={formData.lastName}
+                    onChange={(e) => setFormData({...formData, lastName: e.target.value})}
+                  />
                 </div>
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="email">Email address</Label>
-                <Input id="email" type="email" placeholder="m@example.com" required disabled={isLoading} />
+                <Input 
+                  id="email" 
+                  type="email" 
+                  placeholder="m@example.com" 
+                  required 
+                  disabled={isLoading}
+                  value={formData.email}
+                  onChange={(e) => setFormData({...formData, email: e.target.value})}
+                />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="password">Password</Label>
-                <Input id="password" type="password" required disabled={isLoading} />
+                <Input 
+                  id="password" 
+                  type="password" 
+                  required 
+                  disabled={isLoading}
+                  value={formData.password}
+                  onChange={(e) => setFormData({...formData, password: e.target.value})}
+                />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="admission-number">Child's Admission # (Optional)</Label>
-                <Input id="admission-number" placeholder="SCH-2024-001" disabled={isLoading} />
+                <Label htmlFor="admission-number">Child's Admission #</Label>
+                <Input 
+                  id="admission-number" 
+                  placeholder="SCH-2024-001" 
+                  disabled={isLoading}
+                  value={formData.admissionNumber}
+                  onChange={(e) => setFormData({...formData, admissionNumber: e.target.value})}
+                />
               </div>
             </CardContent>
             <CardFooter className="flex flex-col gap-4">

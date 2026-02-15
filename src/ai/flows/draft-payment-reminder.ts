@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview This file implements a Genkit flow for drafting personalized payment reminder messages for parents.
@@ -14,7 +15,7 @@ const PaymentReminderInputSchema = z.object({
   parentName: z.string().describe("The name of the parent or guardian."),
   studentName: z.string().describe("The name of the child."),
   admissionNumber: z.string().describe("The child's unique admission number."),
-  amountDue: z.string().describe("The amount of school fees due, e.g., 'GHS 500.00'."),
+  amountDue: z.string().describe("The amount of school fees due, e.g., 'KES 5,000.00'."),
   dueDate: z.string().describe("The due date for the payment, e.g., 'October 26, 2024'."),
   feeDetails: z.string().optional().describe("Optional additional details about the fees, e.g., 'First term tuition'."),
 });
@@ -39,7 +40,7 @@ const paymentReminderPrompt = ai.definePrompt({
 The reminder should include:
 - The parent's name.
 - The child's name and admission number.
-- The amount due.
+- The amount due in Kenyan Shillings (KES).
 - The due date.
 - Any additional fee details provided.
 

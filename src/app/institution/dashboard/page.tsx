@@ -1,6 +1,7 @@
+
 "use client"
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -30,12 +31,24 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import Link from "next/link";
+import { useAuth, useUser } from "@/firebase";
+import { useRouter } from "next/navigation";
+import { signOut } from "firebase/auth";
 
 export default function InstitutionDashboard() {
+  const { user, loading } = useUser();
+  const auth = useAuth();
+  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [isExplaining, setIsExplaining] = useState(false);
   const [explanation, setExplanation] = useState("");
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push("/institution/login");
+    }
+  }, [user, loading, router]);
 
   const filteredStudents = MOCK_STUDENTS.filter(s => 
     s.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -62,6 +75,16 @@ export default function InstitutionDashboard() {
       setIsExplaining(false);
     }
   };
+
+  const handleLogout = async () => {
+    if (auth) {
+      await signOut(auth);
+      router.push("/institution/login");
+    }
+  };
+
+  if (loading) return <div className="min-h-screen flex items-center justify-center">Loading dashboard...</div>;
+  if (!user) return null;
 
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
@@ -92,17 +115,15 @@ export default function InstitutionDashboard() {
           <div className="mt-auto pt-6 border-t border-white/10 space-y-4">
             <div className="flex items-center gap-3 px-2">
               <div className="h-10 w-10 rounded-full bg-accent flex items-center justify-center font-bold text-accent-foreground">
-                AD
+                {user.email?.substring(0, 2).toUpperCase()}
               </div>
               <div className="flex flex-col overflow-hidden">
-                <span className="text-sm font-semibold truncate">Admin User</span>
-                <span className="text-xs text-white/50 truncate">Head of Admin</span>
+                <span className="text-sm font-semibold truncate">{user.email}</span>
+                <span className="text-xs text-white/50 truncate">Administrator</span>
               </div>
             </div>
-            <Button variant="ghost" className="w-full justify-start text-white/50 hover:text-white hover:bg-white/10" asChild>
-              <Link href="/institution/login">
-                <LogOut className="mr-3 h-5 w-5" /> Logout
-              </Link>
+            <Button variant="ghost" className="w-full justify-start text-white/50 hover:text-white hover:bg-white/10" onClick={handleLogout}>
+              <LogOut className="mr-3 h-5 w-5" /> Logout
             </Button>
           </div>
         </aside>
@@ -112,7 +133,7 @@ export default function InstitutionDashboard() {
           <header className="flex justify-between items-center mb-10">
             <div>
               <h1 className="text-3xl font-extrabold text-foreground font-headline">Institution Overview</h1>
-              <p className="text-muted-foreground">Real-time school financial and student tracking</p>
+              <p className="text-muted-foreground">Real-time school financial tracking (KES)</p>
             </div>
             <Button className="bg-primary hover:bg-primary/90 h-11 px-6 shadow-lg shadow-primary/20">
               <Plus className="mr-2 h-4 w-4" /> Add New Student
@@ -127,7 +148,7 @@ export default function InstitutionDashboard() {
                 <CardDescription className="flex items-center text-xs font-bold uppercase tracking-wider text-muted-foreground">
                   <TrendingUp className="mr-1.5 h-3 w-3 text-primary" /> Total Revenue
                 </CardDescription>
-                <CardTitle className="text-3xl font-headline font-bold">GHS {totalCollected.toFixed(2)}</CardTitle>
+                <CardTitle className="text-3xl font-headline font-bold">KES {totalCollected.toFixed(2)}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
@@ -143,7 +164,7 @@ export default function InstitutionDashboard() {
                 <CardDescription className="flex items-center text-xs font-bold uppercase tracking-wider text-muted-foreground">
                   <AlertCircle className="mr-1.5 h-3 w-3 text-accent" /> Outstanding Balance
                 </CardDescription>
-                <CardTitle className="text-3xl font-headline font-bold">GHS {totalOutstanding.toFixed(2)}</CardTitle>
+                <CardTitle className="text-3xl font-headline font-bold">KES {totalOutstanding.toFixed(2)}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
@@ -215,7 +236,7 @@ export default function InstitutionDashboard() {
                         </Badge>
                       </td>
                       <td className="p-4 text-sm text-right font-bold">
-                        GHS {(s.totalFees - s.paidAmount).toFixed(2)}
+                        KES {(s.totalFees - s.paidAmount).toFixed(2)}
                       </td>
                       <td className="p-4 text-right space-x-2">
                         <Dialog>

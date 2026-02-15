@@ -9,18 +9,35 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { GraduationCap, Loader2 } from "lucide-react";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { useAuth } from "@/firebase";
+import { useToast } from "@/hooks/use-toast";
 
 export default function FamilyLogin() {
   const router = useRouter();
+  const auth = useAuth();
+  const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
   async function onSubmit(event: React.SyntheticEvent) {
     event.preventDefault();
+    if (!auth) return;
+
     setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
       router.push("/family/dashboard");
-    }, 1500);
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Login failed",
+        description: error.message || "Invalid credentials. Please try again."
+      });
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   return (
@@ -45,11 +62,26 @@ export default function FamilyLogin() {
             <CardContent className="grid gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="email">Email address</Label>
-                <Input id="email" type="email" placeholder="m@example.com" required disabled={isLoading} />
+                <Input 
+                  id="email" 
+                  type="email" 
+                  placeholder="m@example.com" 
+                  required 
+                  disabled={isLoading}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="password">Password</Label>
-                <Input id="password" type="password" required disabled={isLoading} />
+                <Input 
+                  id="password" 
+                  type="password" 
+                  required 
+                  disabled={isLoading}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
               </div>
             </CardContent>
             <CardFooter className="flex flex-col gap-4">

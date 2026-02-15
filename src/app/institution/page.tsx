@@ -9,18 +9,60 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Building2 } from "lucide-react";
+import { createUserWithEmailAndPassword } from "firebase/auth";
+import { doc, setDoc } from "firebase/firestore";
+import { useAuth, useFirestore } from "@/firebase";
+import { useToast } from "@/hooks/use-toast";
 
 export default function InstitutionSignup() {
   const router = useRouter();
+  const auth = useAuth();
+  const db = useFirestore();
+  const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+
+  const [formData, setFormData] = useState({
+    schoolName: "",
+    adminEmail: "",
+    password: "",
+    confirmPassword: ""
+  });
 
   async function onSubmit(event: React.SyntheticEvent) {
     event.preventDefault();
+    if (!auth || !db) return;
+
+    if (formData.password !== formData.confirmPassword) {
+      toast({
+        variant: "destructive",
+        title: "Passwords do not match",
+        description: "Please ensure both passwords are the same."
+      });
+      return;
+    }
+
     setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, formData.adminEmail, formData.password);
+      const user = userCredential.user;
+
+      await setDoc(doc(db, "institutions", user.uid), {
+        schoolName: formData.schoolName,
+        adminEmail: formData.adminEmail,
+        role: "admin",
+        createdAt: new Date().toISOString()
+      });
+
       router.push("/institution/dashboard");
-    }, 2000);
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Registration failed",
+        description: error.message || "An error occurred during signup."
+      });
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   return (
@@ -45,19 +87,48 @@ export default function InstitutionSignup() {
             <CardContent className="grid gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="school-name">School Name</Label>
-                <Input id="school-name" placeholder="Scholarly Academy" required disabled={isLoading} />
+                <Input 
+                  id="school-name" 
+                  placeholder="Scholarly Academy" 
+                  required 
+                  disabled={isLoading}
+                  value={formData.schoolName}
+                  onChange={(e) => setFormData({...formData, schoolName: e.target.value})}
+                />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="admin-email">Admin Email</Label>
-                <Input id="admin-email" type="email" placeholder="admin@school.com" required disabled={isLoading} />
+                <Input 
+                  id="admin-email" 
+                  type="email" 
+                  placeholder="admin@school.com" 
+                  required 
+                  disabled={isLoading}
+                  value={formData.adminEmail}
+                  onChange={(e) => setFormData({...formData, adminEmail: e.target.value})}
+                />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="password">Password</Label>
-                <Input id="password" type="password" required disabled={isLoading} />
+                <Input 
+                  id="password" 
+                  type="password" 
+                  required 
+                  disabled={isLoading}
+                  value={formData.password}
+                  onChange={(e) => setFormData({...formData, password: e.target.value})}
+                />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="confirm-password">Confirm Password</Label>
-                <Input id="confirm-password" type="password" required disabled={isLoading} />
+                <Input 
+                  id="confirm-password" 
+                  type="password" 
+                  required 
+                  disabled={isLoading}
+                  value={formData.confirmPassword}
+                  onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})}
+                />
               </div>
             </CardContent>
             <CardFooter className="flex flex-col gap-4">
