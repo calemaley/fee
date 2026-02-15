@@ -291,6 +291,11 @@ export default function InstitutionFees() {
                   ))}
                 </tbody>
               </table>
+              {filteredStudents.length === 0 && !studentsLoading && (
+                <div className="p-12 text-center text-muted-foreground italic">
+                  No financial records found.
+                </div>
+              )}
             </div>
           </Card>
         </main>

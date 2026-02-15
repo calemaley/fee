@@ -311,6 +311,11 @@ export default function InstitutionStudents() {
                   ))}
                 </tbody>
               </table>
+              {filteredStudents.length === 0 && !studentsLoading && (
+                <div className="p-12 text-center text-muted-foreground italic">
+                  No students found in the directory.
+                </div>
+              )}
             </div>
           </Card>
         </main>
