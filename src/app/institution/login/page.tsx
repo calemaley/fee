@@ -1,17 +1,12 @@
-
 "use client"
 
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { ShieldCheck, Loader2 } from "lucide-react";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { useAuth } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
+import { Loader2 } from "lucide-react";
 
 export default function InstitutionLogin() {
   const router = useRouter();
@@ -41,65 +36,45 @@ export default function InstitutionLogin() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4 sm:p-8">
-      <div className="max-w-[420px] w-full space-y-6">
-        <div className="flex flex-col items-center gap-2 mb-8">
-          <div className="bg-primary p-3 rounded-xl shadow-lg shadow-primary/20">
-            <ShieldCheck className="text-white h-8 w-8" />
-          </div>
-          <h1 className="text-3xl font-bold tracking-tight text-primary font-headline">ScholarlyPay</h1>
-          <div className="px-3 py-1 bg-primary/10 rounded-full text-xs font-bold text-primary tracking-widest uppercase">
-            Admin Console
+    <div className="auth-container">
+      <div className="ring-wrapper">
+        <i style={{ "--clr": "#00ff0a" } as any}></i>
+        <i style={{ "--clr": "#ff0057" } as any}></i>
+        <i style={{ "--clr": "#fffd44" } as any}></i>
+        <div className="auth-form-box">
+          <h2 className="font-headline">Admin Login</h2>
+          <form onSubmit={onSubmit} className="w-full space-y-4">
+            <div className="auth-input-bx">
+              <input
+                type="email"
+                placeholder="Admin Email"
+                required
+                disabled={isLoading}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
+            <div className="auth-input-bx">
+              <input
+                type="password"
+                placeholder="Password"
+                required
+                disabled={isLoading}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </div>
+            <div className="auth-input-bx">
+              <button type="submit" className="auth-submit-btn flex items-center justify-center" disabled={isLoading}>
+                {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Sign In"}
+              </button>
+            </div>
+          </form>
+          <div className="auth-links">
+            <Link href="#">Forgot Password</Link>
+            <Link href="/institution">Signup</Link>
           </div>
         </div>
-
-        <Card className="border-none shadow-2xl bg-white/95">
-          <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl font-headline">Institution Sign In</CardTitle>
-            <CardDescription>
-              Access the fee management dashboard
-            </CardDescription>
-          </CardHeader>
-          <form onSubmit={onSubmit}>
-            <CardContent className="grid gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="email">Email</Label>
-                <Input 
-                  id="email" 
-                  type="email" 
-                  placeholder="admin@school.com" 
-                  required 
-                  disabled={isLoading}
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="password">Password</Label>
-                <Input 
-                  id="password" 
-                  type="password" 
-                  required 
-                  disabled={isLoading}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-              </div>
-            </CardContent>
-            <CardFooter className="flex flex-col gap-4">
-              <Button type="submit" className="w-full h-11 bg-primary hover:bg-primary/90" disabled={isLoading}>
-                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Login to Dashboard
-              </Button>
-              <div className="text-sm text-center text-muted-foreground">
-                New school?{" "}
-                <Link href="/institution" className="text-primary hover:underline font-semibold">
-                  Register institution
-                </Link>
-              </div>
-            </CardFooter>
-          </form>
-        </Card>
       </div>
     </div>
   );
