@@ -4,72 +4,40 @@
 import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   Users, 
-  Search, 
   TrendingUp, 
   CreditCard, 
   AlertCircle, 
   Plus, 
   LayoutDashboard,
   GraduationCap,
-  MessageSquareText,
   Loader2,
   LogOut,
-  ChevronRight
+  ChevronRight,
+  ArrowRight
 } from "lucide-react";
-import { generateFeeExplanation } from "@/ai/flows/generate-fee-explanation";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogFooter,
-} from "@/components/ui/dialog";
 import Link from "next/link";
 import { useAuth, useUser, useCollection, useFirestore } from "@/firebase";
 import { useRouter } from "next/navigation";
 import { signOut } from "firebase/auth";
-import { collection, addDoc, query, orderBy } from "firebase/firestore";
+import { collection, query, orderBy, limit } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/errors';
 
 export default function InstitutionDashboard() {
   const { user, loading: userLoading } = useUser();
   const auth = useAuth();
   const db = useFirestore();
   const router = useRouter();
-  const { toast } = useToast();
 
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedStudent, setSelectedStudent] = useState<any>(null);
-  const [isExplaining, setIsExplaining] = useState(false);
-  const [explanation, setExplanation] = useState("");
-  const [isAddingStudent, setIsAddingStudent] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Real-time student data
+  // Real-time student data for stats
   const studentsQuery = useMemo(() => {
     if (!db) return null;
-    return query(collection(db, "students"), orderBy("name", "asc"));
+    return query(collection(db, "students"), orderBy("createdAt", "desc"));
   }, [db]);
 
   const { data: students, loading: studentsLoading } = useCollection(studentsQuery);
-
-  const filteredStudents = useMemo(() => {
-    if (!students) return [];
-    return students.filter(s => 
-      s.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-      s.admissionNumber.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [students, searchTerm]);
 
   const stats = useMemo(() => {
     if (!students) return { totalCollected: 0, totalOutstanding: 0, count: 0 };
@@ -81,66 +49,6 @@ export default function InstitutionDashboard() {
       count: students.length
     };
   }, [students]);
-
-  const handleExplain = async (student: any) => {
-    setIsExplaining(true);
-    try {
-      const result = await generateFeeExplanation({
-        studentName: student.name,
-        admissionNumber: student.admissionNumber,
-        outstandingBalance: Number(student.totalFees) - Number(student.paidAmount),
-        dueDate: new Date().toLocaleDateString(),
-        additionalContext: "Detailed breakdown of tuition and activity fees."
-      });
-      setExplanation(result.explanation);
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setIsExplaining(false);
-    }
-  };
-
-  const handleAddStudent = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!db) return;
-
-    setIsSubmitting(true);
-    const formData = new FormData(e.currentTarget);
-    
-    const newStudent = {
-      name: formData.get("name") as string,
-      admissionNumber: formData.get("admissionNumber") as string,
-      grade: formData.get("grade") as string,
-      parentName: formData.get("parentName") as string,
-      parentEmail: formData.get("parentEmail") as string,
-      totalFees: Number(formData.get("totalFees")),
-      paidAmount: Number(formData.get("paidAmount") || 0),
-      status: (Number(formData.get("paidAmount") || 0) >= Number(formData.get("totalFees"))) ? "Paid" : "Balance",
-      createdAt: new Date().toISOString()
-    };
-
-    const studentsCol = collection(db, "students");
-    
-    addDoc(studentsCol, newStudent)
-      .then(() => {
-        setIsAddingStudent(false);
-        toast({
-          title: "Student Added",
-          description: `${newStudent.name} has been successfully registered.`,
-        });
-      })
-      .catch(async (error) => {
-        const permissionError = new FirestorePermissionError({
-          path: 'students',
-          operation: 'create',
-          requestResourceData: newStudent,
-        } satisfies SecurityRuleContext);
-        errorEmitter.emit('permission-error', permissionError);
-      })
-      .finally(() => {
-        setIsSubmitting(false);
-      });
-  };
 
   const handleLogout = async () => {
     if (auth) {
@@ -178,11 +86,15 @@ export default function InstitutionDashboard() {
                 <LayoutDashboard className="mr-3 h-5 w-5" /> Dashboard
               </Link>
             </Button>
-            <Button variant="ghost" className="w-full justify-start text-white/70 hover:bg-white/10 hover:text-white">
-              <Users className="mr-3 h-5 w-5" /> Students
+            <Button variant="ghost" className="w-full justify-start text-white/70 hover:bg-white/10 hover:text-white" asChild>
+              <Link href="/institution/students">
+                <Users className="mr-3 h-5 w-5" /> Students
+              </Link>
             </Button>
-            <Button variant="ghost" className="w-full justify-start text-white/70 hover:bg-white/10 hover:text-white">
-              <CreditCard className="mr-3 h-5 w-5" /> Fees Management
+            <Button variant="ghost" className="w-full justify-start text-white/70 hover:bg-white/10 hover:text-white" asChild>
+              <Link href="/institution/fees">
+                <CreditCard className="mr-3 h-5 w-5" /> Fees Management
+              </Link>
             </Button>
           </nav>
 
@@ -208,68 +120,14 @@ export default function InstitutionDashboard() {
             <div>
               <h1 className="text-3xl font-extrabold text-foreground font-headline">Institution Overview</h1>
               <p className="text-muted-foreground flex items-center gap-1.5">
-                Manage your school's financial health <ChevronRight className="h-3.5 w-3.5" /> <span className="text-primary font-medium">KES</span>
+                Financial health summary <ChevronRight className="h-3.5 w-3.5" /> <span className="text-primary font-medium">KES</span>
               </p>
             </div>
-            
-            <Dialog open={isAddingStudent} onOpenChange={setIsAddingStudent}>
-              <DialogTrigger asChild>
-                <Button className="bg-primary hover:bg-primary/90 h-11 px-6 shadow-lg shadow-primary/20">
-                  <Plus className="mr-2 h-4 w-4" /> Add New Student
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[500px]">
-                <form onSubmit={handleAddStudent}>
-                  <DialogHeader>
-                    <DialogTitle className="text-2xl font-headline">Register New Student</DialogTitle>
-                    <DialogDescription>
-                      Enter student and financial details to add them to the system.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="grid gap-4 py-6">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="name">Full Name</Label>
-                        <Input id="name" name="name" placeholder="Emma Thompson" required />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="admissionNumber">Admission #</Label>
-                        <Input id="admissionNumber" name="admissionNumber" placeholder="SCH-2024-001" required />
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="grade">Grade / Class</Label>
-                        <Input id="grade" name="grade" placeholder="Primary 4" required />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="totalFees">Total Fees (KES)</Label>
-                        <Input id="totalFees" name="totalFees" type="number" placeholder="50000" required />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="parentName">Parent / Guardian Name</Label>
-                      <Input id="parentName" name="parentName" placeholder="Sarah Thompson" required />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="parentEmail">Parent Email</Label>
-                      <Input id="parentEmail" name="parentEmail" type="email" placeholder="sarah@example.com" required />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="paidAmount">Initial Deposit (KES)</Label>
-                      <Input id="paidAmount" name="paidAmount" type="number" placeholder="0" />
-                    </div>
-                  </div>
-                  <DialogFooter>
-                    <Button variant="outline" type="button" onClick={() => setIsAddingStudent(false)}>Cancel</Button>
-                    <Button type="submit" disabled={isSubmitting}>
-                      {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      Register Student
-                    </Button>
-                  </DialogFooter>
-                </form>
-              </DialogContent>
-            </Dialog>
+            <Button asChild className="bg-primary hover:bg-primary/90 h-11 px-6 shadow-lg shadow-primary/20">
+              <Link href="/institution/students">
+                <Plus className="mr-2 h-4 w-4" /> Manage Students
+              </Link>
+            </Button>
           </header>
 
           {/* Stats Cards */}
@@ -284,7 +142,7 @@ export default function InstitutionDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
-                  <div className="h-full bg-primary" style={{ width: stats.totalCollected > 0 ? '65%' : '0%' }} />
+                  <div className="h-full bg-primary" style={{ width: '65%' }} />
                 </div>
                 <p className="text-[10px] text-muted-foreground mt-2">Live collection from all registered students</p>
               </CardContent>
@@ -300,7 +158,7 @@ export default function InstitutionDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
-                  <div className="h-full bg-accent" style={{ width: stats.totalOutstanding > 0 ? '35%' : '0%' }} />
+                  <div className="h-full bg-accent" style={{ width: '35%' }} />
                 </div>
                 <p className="text-[10px] text-muted-foreground mt-2">Total pending payments across institution</p>
               </CardContent>
@@ -327,121 +185,59 @@ export default function InstitutionDashboard() {
             </Card>
           </div>
 
-          {/* Student Table */}
-          <Card className="border-none shadow-xl bg-white overflow-hidden border-t-4 border-t-primary">
-            <CardHeader className="border-b bg-white/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <CardTitle className="text-xl font-headline">Student Directory & Fee Status</CardTitle>
-              <div className="relative w-full sm:w-72">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input 
-                  placeholder="Search name or ID..." 
-                  className="pl-10 h-10 bg-muted/30 border-none" 
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-            </CardHeader>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-muted/10 border-b">
-                    <th className="p-4 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Student Name</th>
-                    <th className="p-4 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Admission #</th>
-                    <th className="p-4 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Grade</th>
-                    <th className="p-4 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Status</th>
-                    <th className="p-4 font-semibold text-xs uppercase tracking-wider text-right text-muted-foreground">Balance</th>
-                    <th className="p-4 font-semibold text-xs uppercase tracking-wider text-right text-muted-foreground">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredStudents.map((s: any) => (
-                    <tr key={s.id} className="border-b hover:bg-muted/5 transition-colors">
-                      <td className="p-4">
-                        <div className="flex flex-col">
-                          <span className="font-bold text-sm text-foreground">{s.name}</span>
-                          <span className="text-xs text-muted-foreground">{s.parentName}</span>
-                        </div>
-                      </td>
-                      <td className="p-4 text-sm font-mono text-muted-foreground">{s.admissionNumber}</td>
-                      <td className="p-4 text-sm">{s.grade}</td>
-                      <td className="p-4">
-                        <Badge variant={s.status === 'Paid' ? 'default' : s.status === 'Balance' ? 'secondary' : 'destructive'} className="rounded-full px-2.5 py-0.5 font-medium">
-                          {s.status}
-                        </Badge>
-                      </td>
-                      <td className="p-4 text-sm text-right font-bold text-foreground">
-                        KES {(Number(s.totalFees) - Number(s.paidAmount)).toLocaleString()}
-                      </td>
-                      <td className="p-4 text-right space-x-2">
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <Button 
-                              variant="outline" 
-                              size="sm" 
-                              className="h-8 gap-2 border-primary text-primary hover:bg-primary/5"
-                              onClick={() => {
-                                setSelectedStudent(s);
-                                setExplanation("");
-                              }}
-                            >
-                              <MessageSquareText className="h-3.5 w-3.5" /> Explain Fees
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent className="sm:max-w-[500px]">
-                            <DialogHeader>
-                              <DialogTitle className="font-headline text-2xl">AI Fee Assistant</DialogTitle>
-                              <DialogDescription>
-                                Generating a professional explanation for {selectedStudent?.name}'s current balance.
-                              </DialogDescription>
-                            </DialogHeader>
-                            <div className="py-4 space-y-4">
-                              <div className="p-4 rounded-xl bg-muted/40 border border-muted min-h-[150px] relative">
-                                {isExplaining ? (
-                                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/50 gap-3">
-                                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                                    <span className="text-xs font-medium animate-pulse">Drafting explanation...</span>
-                                  </div>
-                                ) : (
-                                  <p className="text-sm leading-relaxed whitespace-pre-wrap italic text-muted-foreground">
-                                    {explanation || "Click 'Generate' to create a polite, context-aware explanation for the parent."}
-                                  </p>
-                                )}
-                              </div>
-                            </div>
-                            <DialogFooter>
-                              <Button variant="ghost" onClick={() => setExplanation("")}>Reset</Button>
-                              <Button 
-                                className="bg-primary text-white" 
-                                disabled={isExplaining}
-                                onClick={() => selectedStudent && handleExplain(selectedStudent)}
-                              >
-                                {explanation ? "Regenerate" : "Generate Explanation"}
-                              </Button>
-                              {explanation && (
-                                <Button className="bg-accent text-accent-foreground">Copy to Email</Button>
-                              )}
-                            </DialogFooter>
-                          </DialogContent>
-                        </Dialog>
-                        <Button variant="ghost" size="sm" className="h-8 px-3 text-muted-foreground hover:text-foreground">View Details</Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              {filteredStudents.length === 0 && (
-                <div className="p-20 text-center text-muted-foreground flex flex-col items-center gap-4">
-                  <div className="bg-muted/50 p-6 rounded-full">
-                    <Search className="h-10 w-10 opacity-20" />
+          <div className="grid lg:grid-cols-2 gap-8">
+            <Card className="border-none shadow-lg">
+              <CardHeader>
+                <CardTitle className="text-xl font-headline">Recent Admissions</CardTitle>
+                <CardDescription>Latest students added to the system</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {students?.slice(0, 5).map((s: any) => (
+                  <div key={s.id} className="flex items-center justify-between p-3 rounded-lg border bg-muted/10">
+                    <div className="flex flex-col">
+                      <span className="font-bold text-sm">{s.name}</span>
+                      <span className="text-xs text-muted-foreground">{s.grade}</span>
+                    </div>
+                    <Badge variant="outline">{s.admissionNumber}</Badge>
                   </div>
-                  <div className="space-y-1">
-                    <p className="font-bold text-foreground">No students found</p>
-                    <p className="text-sm">Try adjusting your search or add a new student.</p>
+                ))}
+                {(!students || students.length === 0) && (
+                  <p className="text-center py-8 text-muted-foreground italic">No students registered yet.</p>
+                )}
+                <Button variant="ghost" className="w-full text-primary font-semibold" asChild>
+                  <Link href="/institution/students">
+                    View All Students <ArrowRight className="ml-2 h-4 w-4" />
+                  </Link>
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card className="border-none shadow-lg">
+              <CardHeader>
+                <CardTitle className="text-xl font-headline">Payment Alerts</CardTitle>
+                <CardDescription>Students with significant outstanding balances</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {students?.filter((s: any) => (Number(s.totalFees) - Number(s.paidAmount)) > 0).slice(0, 5).map((s: any) => (
+                  <div key={s.id} className="flex items-center justify-between p-3 rounded-lg border bg-destructive/5 border-destructive/10">
+                    <div className="flex flex-col">
+                      <span className="font-bold text-sm">{s.name}</span>
+                      <span className="text-xs text-muted-foreground">Balance: KES {(Number(s.totalFees) - Number(s.paidAmount)).toLocaleString()}</span>
+                    </div>
+                    <Badge variant="destructive">Pending</Badge>
                   </div>
-                </div>
-              )}
-            </div>
-          </Card>
+                ))}
+                {(!students || students.filter((s: any) => (Number(s.totalFees) - Number(s.paidAmount)) > 0).length === 0) && (
+                  <p className="text-center py-8 text-muted-foreground italic">All accounts are up to date!</p>
+                )}
+                <Button variant="ghost" className="w-full text-primary font-semibold" asChild>
+                  <Link href="/institution/fees">
+                    Go to Fees Management <ArrowRight className="ml-2 h-4 w-4" />
+                  </Link>
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
         </main>
       </div>
     </div>
