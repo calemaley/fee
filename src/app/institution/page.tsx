@@ -12,8 +12,6 @@ import { createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 import { useAuth, useFirestore } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/errors';
 
 export default function InstitutionSignup() {
   const router = useRouter();
@@ -54,10 +52,7 @@ export default function InstitutionSignup() {
         createdAt: new Date().toISOString()
       };
 
-      const docRef = doc(db, "institutions", user.uid);
-      
-      // Perform the write
-      await setDoc(docRef, profileData);
+      await setDoc(doc(db, "institutions", user.uid), profileData);
 
       toast({
         title: "Registration Successful",
@@ -71,6 +66,7 @@ export default function InstitutionSignup() {
         title: "Registration failed",
         description: error.message || "An error occurred during signup."
       });
+    } finally {
       setIsLoading(false);
     }
   }

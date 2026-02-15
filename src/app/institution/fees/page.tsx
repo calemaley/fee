@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useMemo } from "react";
@@ -6,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
 import { 
   CreditCard, 
   Search, 
@@ -15,8 +15,6 @@ import {
   LogOut,
   ChevronRight,
   MessageSquareText,
-  TrendingUp,
-  AlertCircle,
   Users
 } from "lucide-react";
 import {
@@ -35,8 +33,7 @@ import { signOut } from "firebase/auth";
 import { collection, query, orderBy, updateDoc, doc } from "firebase/firestore";
 import { generateFeeExplanation } from "@/ai/flows/generate-fee-explanation";
 import { useToast } from "@/hooks/use-toast";
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/errors';
+import { useMemoFirebase } from "@/firebase/firestore/use-memo-firebase";
 
 export default function InstitutionFees() {
   const { user, loading: userLoading } = useUser();
@@ -51,8 +48,7 @@ export default function InstitutionFees() {
   const [explanation, setExplanation] = useState("");
   const [isUpdatingFees, setIsUpdatingFees] = useState(false);
 
-  // Real-time student data
-  const studentsQuery = useMemo(() => {
+  const studentsQuery = useMemoFirebase(() => {
     if (!db) return null;
     return query(collection(db, "students"), orderBy("name", "asc"));
   }, [db]);
@@ -76,26 +72,23 @@ export default function InstitutionFees() {
     const newPaidAmount = (Number(selectedStudent.paidAmount) || 0) + amount;
     const newStatus = newPaidAmount >= Number(selectedStudent.totalFees) ? "Paid" : "Balance";
 
-    const studentDoc = doc(db, "students", selectedStudent.id);
-    updateDoc(studentDoc, {
-      paidAmount: newPaidAmount,
-      status: newStatus
-    })
-      .then(() => {
-        setIsUpdatingFees(false);
-        toast({
-          title: "Payment Recorded",
-          description: `KES ${amount.toLocaleString()} has been added to ${selectedStudent.name}'s account.`,
-        });
-      })
-      .catch(async () => {
-        const permissionError = new FirestorePermissionError({
-          path: studentDoc.path,
-          operation: 'update',
-          requestResourceData: { paidAmount: newPaidAmount, status: newStatus },
-        } satisfies SecurityRuleContext);
-        errorEmitter.emit('permission-error', permissionError);
+    try {
+      await updateDoc(doc(db, "students", selectedStudent.id), {
+        paidAmount: newPaidAmount,
+        status: newStatus
       });
+      setIsUpdatingFees(false);
+      toast({
+        title: "Payment Recorded",
+        description: `KES ${amount.toLocaleString()} has been added to ${selectedStudent.name}'s account.`,
+      });
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error updating record",
+        description: error.message
+      });
+    }
   };
 
   const handleExplain = async (student: any) => {
@@ -109,8 +102,12 @@ export default function InstitutionFees() {
         additionalContext: "Detailed breakdown for payment reminder."
       });
       setExplanation(result.explanation);
-    } catch (error) {
-      console.error(error);
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "AI Assistant Failed",
+        description: "Could not generate explanation at this time."
+      });
     } finally {
       setIsExplaining(false);
     }
@@ -137,7 +134,6 @@ export default function InstitutionFees() {
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
       <div className="flex">
-        {/* Sidebar */}
         <aside className="w-64 bg-primary min-h-screen hidden lg:flex flex-col text-white p-6 sticky top-0 shadow-2xl">
           <div className="flex items-center gap-2 mb-10">
             <div className="bg-white/20 p-2 rounded-lg">
@@ -145,7 +141,6 @@ export default function InstitutionFees() {
             </div>
             <span className="text-xl font-bold font-headline">ScholarlyPay</span>
           </div>
-          
           <nav className="space-y-2 flex-1">
             <Button variant="ghost" className="w-full justify-start text-white/70 hover:bg-white/10 hover:text-white" asChild>
               <Link href="/institution/dashboard">
@@ -163,7 +158,6 @@ export default function InstitutionFees() {
               </Link>
             </Button>
           </nav>
-
           <div className="mt-auto pt-6 border-t border-white/10 space-y-4">
             <div className="flex items-center gap-3 px-2">
               <div className="h-10 w-10 rounded-full bg-accent flex items-center justify-center font-bold text-accent-foreground shadow-inner">
@@ -180,7 +174,6 @@ export default function InstitutionFees() {
           </div>
         </aside>
 
-        {/* Main Content */}
         <main className="flex-1 p-8 overflow-auto">
           <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-10">
             <div>
@@ -238,24 +231,14 @@ export default function InstitutionFees() {
                       <td className="p-4 text-right space-x-2">
                         <Dialog>
                           <DialogTrigger asChild>
-                            <Button 
-                              variant="outline" 
-                              size="sm" 
-                              className="h-8 gap-2 border-primary text-primary hover:bg-primary/5"
-                              onClick={() => {
-                                setSelectedStudent(s);
-                                setExplanation("");
-                              }}
-                            >
+                            <Button variant="outline" size="sm" className="h-8 gap-2 border-primary text-primary hover:bg-primary/5" onClick={() => { setSelectedStudent(s); setExplanation(""); }}>
                               <MessageSquareText className="h-3.5 w-3.5" /> AI Explain
                             </Button>
                           </DialogTrigger>
                           <DialogContent className="sm:max-w-[500px]">
                             <DialogHeader>
                               <DialogTitle className="font-headline text-2xl">AI Fee Assistant</DialogTitle>
-                              <DialogDescription>
-                                Generating a professional explanation for {selectedStudent?.name}'s current balance.
-                              </DialogDescription>
+                              <DialogDescription>Generating a professional explanation for {selectedStudent?.name}'s current balance.</DialogDescription>
                             </DialogHeader>
                             <div className="py-4 space-y-4">
                               <div className="p-4 rounded-xl bg-muted/40 border border-muted min-h-[150px] relative">
@@ -273,49 +256,27 @@ export default function InstitutionFees() {
                             </div>
                             <DialogFooter>
                               <Button variant="ghost" onClick={() => setExplanation("")}>Reset</Button>
-                              <Button 
-                                className="bg-primary text-white" 
-                                disabled={isExplaining}
-                                onClick={() => selectedStudent && handleExplain(selectedStudent)}
-                              >
+                              <Button className="bg-primary text-white" disabled={isExplaining} onClick={() => selectedStudent && handleExplain(selectedStudent)}>
                                 {explanation ? "Regenerate" : "Generate Explanation"}
                               </Button>
-                              {explanation && (
-                                <Button className="bg-accent text-accent-foreground">Copy to Email</Button>
-                              )}
                             </DialogFooter>
                           </DialogContent>
                         </Dialog>
 
-                        <Dialog open={isUpdatingFees && selectedStudent?.id === s.id} onOpenChange={(open) => {
-                          setIsUpdatingFees(open);
-                          if(open) setSelectedStudent(s);
-                        }}>
+                        <Dialog open={isUpdatingFees && selectedStudent?.id === s.id} onOpenChange={(open) => { setIsUpdatingFees(open); if(open) setSelectedStudent(s); }}>
                           <DialogTrigger asChild>
-                            <Button 
-                              variant="default" 
-                              size="sm" 
-                              className="h-8"
-                              onClick={() => setSelectedStudent(s)}
-                            >
-                              Add Payment
-                            </Button>
+                            <Button variant="default" size="sm" className="h-8">Add Payment</Button>
                           </DialogTrigger>
                           <DialogContent>
                             <form onSubmit={handleUpdatePayment}>
                               <DialogHeader>
                                 <DialogTitle className="font-headline">Record Payment</DialogTitle>
-                                <DialogDescription>
-                                  Update the total paid amount for {selectedStudent?.name}.
-                                </DialogDescription>
+                                <DialogDescription>Update the total paid amount for {selectedStudent?.name}.</DialogDescription>
                               </DialogHeader>
                               <div className="py-6 space-y-4">
                                 <div className="space-y-2">
                                   <Label htmlFor="paymentAmount">Payment Amount (KES)</Label>
                                   <Input id="paymentAmount" name="paymentAmount" type="number" placeholder="Enter amount received" required />
-                                </div>
-                                <div className="p-4 rounded-lg bg-muted/30 text-xs">
-                                  <p>Current Balance: KES {(Number(selectedStudent?.totalFees) - Number(selectedStudent?.paidAmount)).toLocaleString()}</p>
                                 </div>
                               </div>
                               <DialogFooter>

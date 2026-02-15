@@ -34,8 +34,7 @@ import { useRouter } from "next/navigation";
 import { signOut } from "firebase/auth";
 import { collection, addDoc, query, orderBy, deleteDoc, doc, serverTimestamp } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/errors';
+import { useMemoFirebase } from "@/firebase/firestore/use-memo-firebase";
 
 export default function InstitutionStudents() {
   const { user, loading: userLoading } = useUser();
@@ -49,7 +48,7 @@ export default function InstitutionStudents() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Real-time student data
-  const studentsQuery = useMemo(() => {
+  const studentsQuery = useMemoFirebase(() => {
     if (!db) return null;
     return query(collection(db, "students"), orderBy("createdAt", "desc"));
   }, [db]);
@@ -84,47 +83,40 @@ export default function InstitutionStudents() {
       createdAt: serverTimestamp()
     };
 
-    const studentsCol = collection(db, "students");
-    
-    addDoc(studentsCol, newStudent)
-      .then(() => {
-        setIsAddingStudent(false);
-        toast({
-          title: "Student Added",
-          description: `${newStudent.name} has been successfully registered.`,
-        });
-      })
-      .catch(async (error) => {
-        const permissionError = new FirestorePermissionError({
-          path: 'students',
-          operation: 'create',
-          requestResourceData: newStudent,
-        } satisfies SecurityRuleContext);
-        errorEmitter.emit('permission-error', permissionError);
-      })
-      .finally(() => {
-        setIsSubmitting(false);
+    try {
+      await addDoc(collection(db, "students"), newStudent);
+      setIsAddingStudent(false);
+      toast({
+        title: "Student Added",
+        description: `${newStudent.name} has been successfully registered.`,
       });
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error adding student",
+        description: error.message
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleDeleteStudent = async (studentId: string) => {
     if (!db || !window.confirm("Are you sure you want to delete this student record?")) return;
 
-    const studentDoc = doc(db, "students", studentId);
-    deleteDoc(studentDoc)
-      .then(() => {
-        toast({
-          title: "Student Deleted",
-          description: "Record has been removed from the directory.",
-        });
-      })
-      .catch(async () => {
-        const permissionError = new FirestorePermissionError({
-          path: studentDoc.path,
-          operation: 'delete',
-        } satisfies SecurityRuleContext);
-        errorEmitter.emit('permission-error', permissionError);
+    try {
+      await deleteDoc(doc(db, "students", studentId));
+      toast({
+        title: "Student Deleted",
+        description: "Record has been removed from the directory.",
       });
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error deleting student",
+        description: error.message
+      });
+    }
   };
 
   const handleLogout = async () => {
@@ -148,7 +140,6 @@ export default function InstitutionStudents() {
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
       <div className="flex">
-        {/* Sidebar */}
         <aside className="w-64 bg-primary min-h-screen hidden lg:flex flex-col text-white p-6 sticky top-0 shadow-2xl">
           <div className="flex items-center gap-2 mb-10">
             <div className="bg-white/20 p-2 rounded-lg">
@@ -156,7 +147,6 @@ export default function InstitutionStudents() {
             </div>
             <span className="text-xl font-bold font-headline">ScholarlyPay</span>
           </div>
-          
           <nav className="space-y-2 flex-1">
             <Button variant="ghost" className="w-full justify-start text-white/70 hover:bg-white/10 hover:text-white" asChild>
               <Link href="/institution/dashboard">
@@ -174,7 +164,6 @@ export default function InstitutionStudents() {
               </Link>
             </Button>
           </nav>
-
           <div className="mt-auto pt-6 border-t border-white/10 space-y-4">
             <div className="flex items-center gap-3 px-2">
               <div className="h-10 w-10 rounded-full bg-accent flex items-center justify-center font-bold text-accent-foreground shadow-inner">
@@ -191,7 +180,6 @@ export default function InstitutionStudents() {
           </div>
         </aside>
 
-        {/* Main Content */}
         <main className="flex-1 p-8 overflow-auto">
           <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-10">
             <div>
@@ -323,17 +311,6 @@ export default function InstitutionStudents() {
                   ))}
                 </tbody>
               </table>
-              {filteredStudents.length === 0 && (
-                <div className="p-20 text-center text-muted-foreground flex flex-col items-center gap-4">
-                  <div className="bg-muted/50 p-6 rounded-full">
-                    <Search className="h-10 w-10 opacity-20" />
-                  </div>
-                  <div className="space-y-1">
-                    <p className="font-bold text-foreground">No students found</p>
-                    <p className="text-sm">Try adjusting your search or add a new student.</p>
-                  </div>
-                </div>
-              )}
             </div>
           </Card>
         </main>

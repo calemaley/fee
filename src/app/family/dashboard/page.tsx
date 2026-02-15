@@ -5,12 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { GraduationCap, History, CreditCard, Download, User, Info, LogOut, Loader2 } from "lucide-react";
+import { GraduationCap, History, CreditCard, User, Info, LogOut, Loader2, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth, useUser, useCollection, useFirestore, useDoc } from "@/firebase";
 import { useRouter } from "next/navigation";
 import { signOut } from "firebase/auth";
 import { collection, query, where, doc } from "firebase/firestore";
+import { useMemoFirebase } from "@/firebase/firestore/use-memo-firebase";
 
 export default function FamilyDashboard() {
   const { user, loading: userLoading } = useUser();
@@ -20,12 +21,10 @@ export default function FamilyDashboard() {
   const { toast } = useToast();
   const [isPaying, setIsPaying] = useState(false);
 
-  // Get parent profile
   const parentRef = useMemo(() => (user && db ? doc(db, "parents", user.uid) : null), [user, db]);
   const { data: parentProfile, loading: profileLoading } = useDoc(parentRef);
 
-  // Get child student record based on admission number in parent profile
-  const studentQuery = useMemo(() => {
+  const studentQuery = useMemoFirebase(() => {
     if (!db || !parentProfile?.admissionNumber) return null;
     return query(collection(db, "students"), where("admissionNumber", "==", parentProfile.admissionNumber));
   }, [db, parentProfile]);
@@ -41,12 +40,11 @@ export default function FamilyDashboard() {
 
   const handlePayFees = () => {
     setIsPaying(true);
-    // In a real app, integrate Paystack/M-Pesa here
     setTimeout(() => {
       setIsPaying(false);
       toast({
         title: "Payment Processed",
-        description: "Your payment request has been sent for processing. Check your history for updates.",
+        description: "Your payment request has been sent for processing. KES amount will update soon.",
       });
     }, 2000);
   };
@@ -135,11 +133,7 @@ export default function FamilyDashboard() {
                     <p className="text-xl font-bold text-accent">KES {Number(student.paidAmount || 0).toLocaleString()}</p>
                   </div>
                 </div>
-                <Button 
-                  onClick={handlePayFees} 
-                  className="w-full bg-accent text-accent-foreground hover:bg-accent/90 h-14 text-lg font-bold shadow-lg"
-                  disabled={isPaying || balance <= 0}
-                >
+                <Button onClick={handlePayFees} className="w-full bg-accent text-accent-foreground hover:bg-accent/90 h-14 text-lg font-bold shadow-lg" disabled={isPaying || balance <= 0}>
                   {isPaying ? "Processing..." : "Pay Outstanding Balance"}
                 </Button>
               </CardContent>
@@ -148,8 +142,7 @@ export default function FamilyDashboard() {
             <Card className="border-none shadow-xl bg-white">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 font-headline">
-                  <Info className="h-5 w-5 text-primary" />
-                  Child Details
+                  <Info className="h-5 w-5 text-primary" /> Child Details
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -166,9 +159,6 @@ export default function FamilyDashboard() {
                   <Badge variant={student.status === 'Paid' ? 'default' : student.status === 'Balance' ? 'secondary' : 'destructive'} className="rounded-full">
                     {student.status}
                   </Badge>
-                </div>
-                <div className="mt-4 p-4 bg-muted/30 rounded-lg text-sm italic text-muted-foreground">
-                  "Please ensure all payments are made before the end of term examinations."
                 </div>
               </CardContent>
             </Card>
@@ -189,10 +179,8 @@ export default function FamilyDashboard() {
               </TabsTrigger>
             </TabsList>
             <TabsContent value="history" className="mt-6">
-              <Card className="border-none shadow-xl bg-white overflow-hidden">
-                <div className="p-12 text-center text-muted-foreground">
-                  No payment records found yet.
-                </div>
+              <Card className="border-none shadow-xl bg-white overflow-hidden p-12 text-center text-muted-foreground">
+                No payment records found yet in KES.
               </Card>
             </TabsContent>
           </Tabs>
@@ -201,5 +189,3 @@ export default function FamilyDashboard() {
     </div>
   );
 }
-
-import { AlertCircle } from "lucide-react";

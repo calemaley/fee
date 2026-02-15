@@ -12,8 +12,6 @@ import { createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 import { useAuth, useFirestore } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/errors';
 
 export default function FamilySignup() {
   const router = useRouter();
@@ -48,20 +46,13 @@ export default function FamilySignup() {
         createdAt: new Date().toISOString()
       };
 
-      const docRef = doc(db, "parents", user.uid);
+      await setDoc(doc(db, "parents", user.uid), profileData);
 
-      // Non-blocking write pattern
-      setDoc(docRef, profileData)
-        .catch(async (serverError) => {
-          const permissionError = new FirestorePermissionError({
-            path: docRef.path,
-            operation: 'create',
-            requestResourceData: profileData,
-          } satisfies SecurityRuleContext);
-          errorEmitter.emit('permission-error', permissionError);
-        });
+      toast({
+        title: "Registration Successful",
+        description: "Your family account has been created.",
+      });
 
-      // Optimistic redirect
       router.push("/family/dashboard");
     } catch (error: any) {
       toast({
@@ -69,6 +60,7 @@ export default function FamilySignup() {
         title: "Registration failed",
         description: error.message || "An error occurred during signup."
       });
+    } finally {
       setIsLoading(false);
     }
   }
