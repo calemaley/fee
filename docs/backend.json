@@ -41,22 +41,26 @@
     },
     "Student": {
       "title": "Student",
-      "description": "Comprehensive student details including financial status.",
+      "description": "Comprehensive student details including financial status and personal info.",
       "type": "object",
       "properties": {
         "name": { "type": "string" },
         "admissionNumber": { "type": "string" },
         "grade": { "type": "string" },
+        "gender": { "type": "string", "enum": ["Male", "Female", "Other"] },
+        "dob": { "type": "string", "format": "date" },
+        "address": { "type": "string" },
         "parentName": { "type": "string" },
         "parentEmail": { "type": "string", "format": "email" },
-        "parentPhone": { "type": "string", "description": "Contact phone number for the parent." },
+        "parentPhone": { "type": "string" },
         "totalFees": { "type": "number" },
         "paidAmount": { "type": "number" },
         "status": {
           "type": "string",
           "enum": ["Paid", "Pending", "Balance"]
         },
-        "background": { "type": "string" }
+        "background": { "type": "string" },
+        "medicalNotes": { "type": "string" }
       },
       "required": ["name", "admissionNumber", "parentEmail", "totalFees"]
     }
