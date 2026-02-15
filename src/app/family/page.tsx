@@ -8,9 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { ShieldCheck, Loader2 } from "lucide-react";
+import { UserPlus, Loader2 } from "lucide-react";
 
-export default function InstitutionLogin() {
+export default function FamilySignup() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
 
@@ -19,8 +19,8 @@ export default function InstitutionLogin() {
     setIsLoading(true);
     setTimeout(() => {
       setIsLoading(false);
-      router.push("/institution/dashboard");
-    }, 1500);
+      router.push("/family/dashboard");
+    }, 2000);
   }
 
   return (
@@ -28,41 +28,53 @@ export default function InstitutionLogin() {
       <div className="max-w-[420px] w-full space-y-6">
         <div className="flex flex-col items-center gap-2 mb-8">
           <div className="bg-primary p-3 rounded-xl shadow-lg shadow-primary/20">
-            <ShieldCheck className="text-white h-8 w-8" />
+            <UserPlus className="text-white h-8 w-8" />
           </div>
           <h1 className="text-3xl font-bold tracking-tight text-primary font-headline">ScholarlyPay</h1>
-          <div className="px-3 py-1 bg-primary/10 rounded-full text-xs font-bold text-primary tracking-widest uppercase">
-            Admin Console
-          </div>
+          <p className="text-muted-foreground">Family Portal Registration</p>
         </div>
 
         <Card className="border-none shadow-2xl bg-white/95">
           <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl font-headline">Institution Sign In</CardTitle>
+            <CardTitle className="text-2xl font-headline">Create Family Account</CardTitle>
             <CardDescription>
-              Access the fee management dashboard
+              Join ScholarlyPay to manage your child's education fees
             </CardDescription>
           </CardHeader>
           <form onSubmit={onSubmit}>
             <CardContent className="grid gap-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="first-name">First Name</Label>
+                  <Input id="first-name" placeholder="John" required disabled={isLoading} />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="last-name">Last Name</Label>
+                  <Input id="last-name" placeholder="Doe" required disabled={isLoading} />
+                </div>
+              </div>
               <div className="grid gap-2">
-                <Label htmlFor="staff-id">Staff ID / Email</Label>
-                <Input id="staff-id" type="text" placeholder="ADM-001" required disabled={isLoading} />
+                <Label htmlFor="email">Email address</Label>
+                <Input id="email" type="email" placeholder="m@example.com" required disabled={isLoading} />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="password">Password</Label>
                 <Input id="password" type="password" required disabled={isLoading} />
               </div>
+              <div className="grid gap-2">
+                <Label htmlFor="admission-number">Child's Admission # (Optional)</Label>
+                <Input id="admission-number" placeholder="SCH-2024-001" disabled={isLoading} />
+              </div>
             </CardContent>
             <CardFooter className="flex flex-col gap-4">
-              <Button type="submit" className="w-full h-11 bg-primary hover:bg-primary/90" disabled={isLoading}>
+              <Button type="submit" className="w-full h-11" disabled={isLoading}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Login to Dashboard
+                Sign Up
               </Button>
               <div className="text-sm text-center text-muted-foreground">
-                New school?{" "}
-                <Link href="/institution" className="text-primary hover:underline font-semibold">
-                  Register institution
+                Already have an account?{" "}
+                <Link href="/family/login" className="text-primary hover:underline font-semibold">
+                  Log in
                 </Link>
               </div>
             </CardFooter>

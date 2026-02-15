@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState } from "react";
@@ -58,7 +59,7 @@ export default function FamilyLogin() {
               </Button>
               <div className="text-sm text-center text-muted-foreground">
                 Don't have an account?{" "}
-                <Link href="/family/signup" className="text-primary hover:underline font-semibold">
+                <Link href="/family" className="text-primary hover:underline font-semibold">
                   Sign up
                 </Link>
               </div>
