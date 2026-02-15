@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { signInWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
 import { useAuth } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
@@ -13,6 +13,7 @@ export default function InstitutionLogin() {
   const auth = useAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -35,6 +36,36 @@ export default function InstitutionLogin() {
     }
   }
 
+  async function onResetPassword(event: React.SyntheticEvent) {
+    event.preventDefault();
+    if (!auth || !email) {
+      toast({
+        variant: "destructive",
+        title: "Email required",        
+        description: "Please enter your admin email address to reset your password."
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      await sendPasswordResetEmail(auth, email);
+      toast({
+        title: "Reset email sent",
+        description: "Check your inbox for instructions to reset your admin password."
+      });
+      setIsResetting(false);
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Could not send reset email."
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
   return (
     <div className="auth-container">
       <div className="ring-wrapper">
@@ -42,38 +73,77 @@ export default function InstitutionLogin() {
         <i style={{ "--clr": "#ff0057" } as any}></i>
         <i style={{ "--clr": "#fffd44" } as any}></i>
         <div className="auth-form-box">
-          <h2 className="font-headline">Admin Login</h2>
-          <form onSubmit={onSubmit} className="w-full space-y-4">
-            <div className="auth-input-bx">
-              <input
-                type="email"
-                placeholder="Admin Email"
-                required
-                disabled={isLoading}
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
-            <div className="auth-input-bx">
-              <input
-                type="password"
-                placeholder="Password"
-                required
-                disabled={isLoading}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
-            <div className="auth-input-bx">
-              <button type="submit" className="auth-submit-btn flex items-center justify-center" disabled={isLoading}>
-                {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Sign In"}
-              </button>
-            </div>
-          </form>
-          <div className="auth-links">
-            <Link href="#">Forgot Password</Link>
-            <Link href="/institution">Signup</Link>
-          </div>
+          <h2 className="font-headline">{isResetting ? "Reset Admin" : "Admin Login"}</h2>
+          
+          {!isResetting ? (
+            <form onSubmit={onSubmit} className="w-full space-y-4">
+              <div className="auth-input-bx">
+                <input
+                  type="email"
+                  placeholder="Admin Email"
+                  required
+                  disabled={isLoading}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
+              <div className="auth-input-bx">
+                <input
+                  type="password"
+                  placeholder="Password"
+                  required
+                  disabled={isLoading}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </div>
+              <div className="auth-input-bx">
+                <button type="submit" className="auth-submit-btn flex items-center justify-center" disabled={isLoading}>
+                  {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Sign In"}
+                </button>
+              </div>
+              <div className="auth-links">
+                <button 
+                  type="button" 
+                  onClick={() => setIsResetting(true)}
+                  className="text-white hover:underline text-sm"
+                >
+                  Forgot Password?
+                </button>
+                <Link href="/institution" className="text-white hover:underline text-sm">Signup</Link>
+              </div>
+            </form>
+          ) : (
+            <form onSubmit={onResetPassword} className="w-full space-y-4">
+              <p className="text-white/70 text-sm text-center px-4">
+                Enter your admin email to receive a password reset link.
+              </p>
+              <div className="auth-input-bx">
+                <input
+                  type="email"
+                  placeholder="Admin Email"
+                  required
+                  disabled={isLoading}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
+              <div className="auth-input-bx">
+                <button type="submit" className="auth-submit-btn flex items-center justify-center" disabled={isLoading}>
+                  {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Send Reset Link"}
+                </button>
+              </div>
+              <div className="auth-links justify-center">
+                <button 
+                  type="button" 
+                  onClick={() => setIsResetting(false)}
+                  className="text-white hover:underline text-sm"
+                >
+                  Back to Login
+                </button>
+              </div>
+            </form>
+          )}
         </div>
       </div>
     </div>
