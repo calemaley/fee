@@ -47,6 +47,8 @@
         "name": { "type": "string" },
         "admissionNumber": { "type": "string" },
         "grade": { "type": "string" },
+        "year": { "type": "string", "description": "The academic year." },
+        "term": { "type": "string", "description": "The academic term." },
         "gender": { "type": "string", "enum": ["Male", "Female", "Other"] },
         "dob": { "type": "string", "format": "date" },
         "address": { "type": "string" },
