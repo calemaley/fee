@@ -1,16 +1,27 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Helper to check if a user is registered as an institution (admin)
+    function isAdmin() {
+      return request.auth != null && exists(/databases/$(database)/documents/institutions/$(request.auth.uid));
+    }
+
     match /institutions/{institutionId} {
+      // Admins can manage their own institution profile
       allow read, write: if request.auth != null && request.auth.uid == institutionId;
     }
+    
     match /parents/{parentId} {
+      // Parents can manage their own profile
       allow read, write: if request.auth != null && request.auth.uid == parentId;
     }
+    
     match /students/{studentId} {
+      // Admins have full control over all student records
+      allow read, write: if isAdmin() || (request.auth != null && request.method == 'create');
+      
+      // Parents and other authenticated users can read student records
       allow read: if request.auth != null;
-      // Allow creation/updates of students for demo purposes
-      allow write: if request.auth != null;
     }
   }
 }

@@ -56,18 +56,14 @@ export default function InstitutionSignup() {
 
       const docRef = doc(db, "institutions", user.uid);
       
-      // Non-blocking write pattern
-      setDoc(docRef, profileData)
-        .catch(async (serverError) => {
-          const permissionError = new FirestorePermissionError({
-            path: docRef.path,
-            operation: 'create',
-            requestResourceData: profileData,
-          } satisfies SecurityRuleContext);
-          errorEmitter.emit('permission-error', permissionError);
-        });
+      // Perform the write
+      await setDoc(docRef, profileData);
 
-      // Optimistic redirect
+      toast({
+        title: "Registration Successful",
+        description: "Your institution has been registered.",
+      });
+      
       router.push("/institution/dashboard");
     } catch (error: any) {
       toast({
