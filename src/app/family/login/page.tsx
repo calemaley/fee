@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState } from "react";
@@ -88,7 +89,7 @@ export default function FamilyLogin() {
                   onChange={(e) => setEmail(e.target.value)}
                 />
               </div>
-              <div className="auth-input-bx">
+              <div className="auth-input-bx relative">
                 <input
                   type={showPassword ? "text" : "password"}
                   placeholder="Password"

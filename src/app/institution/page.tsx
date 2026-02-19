@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState } from "react";
@@ -97,7 +98,7 @@ export default function InstitutionSignup() {
                 onChange={(e) => setFormData({...formData, adminEmail: e.target.value})}
               />
             </div>
-            <div className="auth-input-bx">
+            <div className="auth-input-bx relative">
               <input
                 type={showPassword ? "text" : "password"}
                 placeholder="Password"
@@ -115,7 +116,7 @@ export default function InstitutionSignup() {
                 {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
               </button>
             </div>
-            <div className="auth-input-bx">
+            <div className="auth-input-bx relative">
               <input
                 type={showConfirmPassword ? "text" : "password"}
                 placeholder="Confirm"

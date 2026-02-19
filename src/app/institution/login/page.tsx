@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState } from "react";
@@ -42,7 +43,7 @@ export default function InstitutionLogin() {
     if (!auth || !email) {
       toast({
         variant: "destructive",
-        title: "Email required",        
+        title: "Email required",
         description: "Please enter your admin email address to reset your password."
       });
       return;
@@ -88,7 +89,7 @@ export default function InstitutionLogin() {
                   onChange={(e) => setEmail(e.target.value)}
                 />
               </div>
-              <div className="auth-input-bx">
+              <div className="auth-input-bx relative">
                 <input
                   type={showPassword ? "text" : "password"}
                   placeholder="Password"
